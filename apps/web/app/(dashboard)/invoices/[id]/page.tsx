@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { useParams } from 'next/navigation';
-import { Receipt, IndianRupee, Wrench, Package } from 'lucide-react';
+import { Receipt, IndianRupee, Wrench, Package, Printer, MessageCircle } from 'lucide-react';
 
 interface InvoiceDetail {
   id: string;
@@ -133,6 +133,34 @@ export default function InvoiceDetailPage() {
           >
             {invoice.status === 'paid' ? 'Paid in Full' : 'Unpaid'}
           </span>
+        </div>
+
+        {/* Print & share actions */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <a
+            href={`/print/invoices/${invoice.id}?format=a4`}
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all"
+          >
+            <Printer className="w-4 h-4" /> Print A4
+          </a>
+          <a
+            href={`/print/invoices/${invoice.id}?format=thermal`}
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all"
+          >
+            <Printer className="w-4 h-4" /> Thermal
+          </a>
+          {invoice.customer_phone && (
+            <a
+              href={`https://wa.me/${invoice.customer_phone.replace(/[^0-9]/g, '').replace(/^(?!91)(\d{10})$/, '91$1')}?text=${encodeURIComponent(
+                `Hello ${invoice.customer_name},\n\nYour invoice ${invoice.invoice_number} from our service center:\n\nVehicle: ${invoice.vehicle_label} (${invoice.plate_number})\nTotal: ₹${invoice.total.toLocaleString('en-IN')}${invoice.balance_due > 0 ? `\nBalance Due: ₹${invoice.balance_due.toLocaleString('en-IN')}` : '\nStatus: Paid in full — thank you!'}\n\nThank you for your business!`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-medium px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all"
+            >
+              <MessageCircle className="w-4 h-4" /> WhatsApp
+            </a>
+          )}
         </div>
 
         {error && (

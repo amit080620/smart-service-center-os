@@ -12,6 +12,7 @@ import {
   Wrench,
   Package,
   Boxes,
+  BarChart3,
   MoreHorizontal,
   X,
   LogOut
@@ -30,7 +31,8 @@ const MORE_ITEMS = [
   { href: '/vehicles', label: 'Vehicles', icon: Car },
   { href: '/services', label: 'Services', icon: Wrench },
   { href: '/parts', label: 'Parts', icon: Package },
-  { href: '/inventory', label: 'Inventory', icon: Boxes }
+  { href: '/inventory', label: 'Inventory', icon: Boxes },
+  { href: '/reports', label: 'Reports', icon: BarChart3 }
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
