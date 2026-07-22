@@ -85,6 +85,10 @@ export default async function InvoicePrintPage({
         <PrintActions />
         <div className="mx-auto font-mono text-[11px] leading-tight p-2" style={{ width: '72mm' }}>
           <div className="text-center">
+            {org.logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={org.logo_url} alt={org.name} className="h-12 mx-auto mb-1 object-contain" />
+            )}
             <div className="font-bold text-[13px]">{org.name}</div>
             {org.address && <div>{org.address}</div>}
             {org.contact_phone && <div>Ph: {org.contact_phone}</div>}
@@ -169,12 +173,18 @@ export default async function InvoicePrintPage({
       <PrintActions />
       <div className="mx-auto p-10 max-w-[210mm] text-sm">
         <div className="flex justify-between items-start border-b-2 border-black pb-4">
-          <div>
-            <div className="text-2xl font-bold">{org.name}</div>
-            {org.address && <div className="text-gray-700 mt-1">{org.address}</div>}
-            <div className="text-gray-700">
-              {org.contact_phone && <span>Ph: {org.contact_phone}</span>}
-              {org.contact_email && <span className="ml-3">{org.contact_email}</span>}
+          <div className="flex items-start gap-4">
+            {org.logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={org.logo_url} alt={org.name} className="h-16 w-16 object-contain shrink-0" />
+            )}
+            <div>
+              <div className="text-2xl font-bold">{org.name}</div>
+              {org.address && <div className="text-gray-700 mt-1">{org.address}</div>}
+              <div className="text-gray-700">
+                {org.contact_phone && <span>Ph: {org.contact_phone}</span>}
+                {org.contact_email && <span className="ml-3">{org.contact_email}</span>}
+              </div>
             </div>
           </div>
           <div className="text-right">
