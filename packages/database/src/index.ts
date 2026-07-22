@@ -6,5 +6,18 @@
 // next/headers (a server-only API) into any Client Component's bundle
 // that imports from this package, breaking the build.
 export { createSupabaseBrowserClient } from './browser';
-export type { Organization, Branch, Employee, Customer, Vehicle, Service, Part, SessionContext } from './types';
+export type {
+  Organization,
+  Branch,
+  Employee,
+  Customer,
+  Vehicle,
+  Service,
+  Part,
+  JobCard,
+  JobService,
+  JobPart,
+  JobStatusLog,
+  SessionContext
+} from './types';
 export type { Database } from './database.types';

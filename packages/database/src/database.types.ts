@@ -314,6 +314,175 @@ export interface Database {
           }
         ];
       };
+      job_cards: {
+        Row: {
+          id: string;
+          org_id: string;
+          branch_id: string;
+          customer_id: string;
+          vehicle_id: string;
+          job_number: string;
+          status: string;
+          assigned_technician_id: string | null;
+          created_by: string;
+          approved_by: string | null;
+          approved_at: string | null;
+          estimated_cost: number;
+          final_cost: number;
+          paid: boolean;
+          payment_status: string;
+          odometer_in: number;
+          notes: string;
+          technician_notes: string;
+          completed_at: string | null;
+          delivered_at: string | null;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          branch_id: string;
+          customer_id: string;
+          vehicle_id: string;
+          job_number: string;
+          status?: string;
+          assigned_technician_id?: string | null;
+          created_by: string;
+          approved_by?: string | null;
+          approved_at?: string | null;
+          estimated_cost?: number;
+          final_cost?: number;
+          paid?: boolean;
+          payment_status?: string;
+          odometer_in: number;
+          notes?: string;
+          technician_notes?: string;
+          completed_at?: string | null;
+          delivered_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          deleted_at?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['job_cards']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'job_cards_customer_id_fkey';
+            columns: ['customer_id'];
+            isOneToOne: false;
+            referencedRelation: 'customers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'job_cards_vehicle_id_fkey';
+            columns: ['vehicle_id'];
+            isOneToOne: false;
+            referencedRelation: 'vehicles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      job_services: {
+        Row: {
+          id: string;
+          job_id: string;
+          service_id: string;
+          qty: number;
+          unit_cost: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          service_id: string;
+          qty?: number;
+          unit_cost: number;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['job_services']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'job_services_job_id_fkey';
+            columns: ['job_id'];
+            isOneToOne: false;
+            referencedRelation: 'job_cards';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'job_services_service_id_fkey';
+            columns: ['service_id'];
+            isOneToOne: false;
+            referencedRelation: 'services';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      job_parts: {
+        Row: {
+          id: string;
+          job_id: string;
+          part_id: string;
+          qty: number;
+          unit_cost: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          part_id: string;
+          qty?: number;
+          unit_cost: number;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['job_parts']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'job_parts_job_id_fkey';
+            columns: ['job_id'];
+            isOneToOne: false;
+            referencedRelation: 'job_cards';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'job_parts_part_id_fkey';
+            columns: ['part_id'];
+            isOneToOne: false;
+            referencedRelation: 'parts';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      job_status_logs: {
+        Row: {
+          id: string;
+          job_id: string;
+          old_status: string | null;
+          new_status: string;
+          changed_by: string;
+          changed_at: string;
+          note: string;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          old_status?: string | null;
+          new_status: string;
+          changed_by: string;
+          changed_at?: string;
+          note?: string;
+        };
+        Update: Partial<Database['public']['Tables']['job_status_logs']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'job_status_logs_job_id_fkey';
+            columns: ['job_id'];
+            isOneToOne: false;
+            referencedRelation: 'job_cards';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

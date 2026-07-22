@@ -1,7 +1,7 @@
 // Core schema types — matching the already-applied Supabase schema from
 // the previous build (organizations, branches, employees tables). More
 // types get added here as each module is rebuilt.
-import type { Role, OrgStatus, OrgPlan } from '@smartbizos/constants';
+import type { Role, OrgStatus, OrgPlan, JobStatus } from '@smartbizos/constants';
 
 export interface Organization {
   id: string;
@@ -122,6 +122,60 @@ export interface Part {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface JobCard {
+  id: string;
+  org_id: string;
+  branch_id: string;
+  customer_id: string;
+  vehicle_id: string;
+  job_number: string;
+  status: JobStatus;
+  assigned_technician_id: string | null;
+  created_by: string;
+  approved_by: string | null;
+  approved_at: string | null;
+  estimated_cost: number;
+  final_cost: number;
+  paid: boolean;
+  payment_status: string;
+  odometer_in: number;
+  notes: string;
+  technician_notes: string;
+  completed_at: string | null;
+  delivered_at: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface JobService {
+  id: string;
+  job_id: string;
+  service_id: string;
+  qty: number;
+  unit_cost: number;
+  created_at: string;
+}
+
+export interface JobPart {
+  id: string;
+  job_id: string;
+  part_id: string;
+  qty: number;
+  unit_cost: number;
+  created_at: string;
+}
+
+export interface JobStatusLog {
+  id: string;
+  job_id: string;
+  old_status: string | null;
+  new_status: string;
+  changed_by: string;
+  changed_at: string;
+  note: string;
 }
 
 export interface SessionContext {

@@ -63,3 +63,45 @@ export const partSchema = z.object({
   unitCost: z.number().min(0, 'Cost cannot be negative.')
 });
 export type PartInput = z.infer<typeof partSchema>;
+
+export const createJobCardSchema = z.object({
+  customerId: z.string().uuid('Select a valid customer.'),
+  vehicleId: z.string().uuid('Select a valid vehicle.'),
+  odometerIn: z.number().int().min(0, 'Odometer reading is required.'),
+  notes: z.string().trim().optional().default('')
+});
+export type CreateJobCardInput = z.infer<typeof createJobCardSchema>;
+
+export const addLineItemSchema = z.object({
+  type: z.enum(['service', 'part']),
+  itemId: z.string().uuid('Select a valid item.'),
+  qty: z.number().min(0.01, 'Quantity must be greater than zero.'),
+  unitCost: z.number().min(0, 'Cost cannot be negative.')
+});
+export type AddLineItemInput = z.infer<typeof addLineItemSchema>;
+
+export const updateJobStatusSchema = z.object({
+  // NOTE: 'completed' is included here as a plain status transition for
+  // now. In the previous build, reaching 'completed' was only possible via
+  // a dedicated endpoint that ALSO generated the invoice and deducted
+  // inventory in the same operation — preventing a job from being marked
+  // done with no invoice ever created. That endpoint depends on the
+  // Billing module, which doesn't exist yet in this rebuild. Once Billing
+  // is built, this should go back to excluding 'completed' here and
+  // route completion through that dedicated endpoint instead, the same
+  // way the previous system worked.
+  status: z.enum([
+    'received',
+    'diagnosing',
+    'in_progress',
+    'awaiting_parts',
+    'pending_approval',
+    'approved',
+    'completed',
+    'delivered',
+    'cancelled'
+  ]),
+  assignedTechnicianId: z.string().uuid().nullable().optional(),
+  note: z.string().trim().optional().default('')
+});
+export type UpdateJobStatusInput = z.infer<typeof updateJobStatusSchema>;
