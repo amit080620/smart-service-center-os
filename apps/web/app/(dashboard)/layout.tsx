@@ -11,6 +11,7 @@ import {
   Car,
   Wrench,
   Package,
+  Boxes,
   MoreHorizontal,
   X,
   LogOut
@@ -28,7 +29,8 @@ const NAV_ITEMS = [
 const MORE_ITEMS = [
   { href: '/vehicles', label: 'Vehicles', icon: Car },
   { href: '/services', label: 'Services', icon: Wrench },
-  { href: '/parts', label: 'Parts', icon: Package }
+  { href: '/parts', label: 'Parts', icon: Package },
+  { href: '/inventory', label: 'Inventory', icon: Boxes }
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

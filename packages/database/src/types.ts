@@ -203,6 +203,28 @@ export interface Payment {
   recorded_by: string;
 }
 
+export interface Inventory {
+  id: string;
+  org_id: string;
+  branch_id: string;
+  part_id: string;
+  qty_on_hand: number;
+  reorder_level: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InventoryTransaction {
+  id: string;
+  inventory_id: string;
+  type: string;
+  qty: number;
+  reference_job_id: string | null;
+  performed_by: string;
+  notes: string;
+  created_at: string;
+}
+
 export interface SessionContext {
   employee: Employee;
   org: Organization;

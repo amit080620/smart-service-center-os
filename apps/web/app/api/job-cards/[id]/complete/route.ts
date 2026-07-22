@@ -120,5 +120,37 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     note: `Job completed and invoice ${invoiceNumber} generated.`
   });
 
+  // Auto-deduct used parts from this branch's inventory — the deferred
+  // piece noted when Billing was first built. Deliberately non-blocking:
+  // if a part isn't inventory-tracked at this branch (or stock is already
+  // zero), the job still completes and the invoice still stands — a
+  // billing operation shouldn't fail because stock counts are behind.
+  // Each deduction is logged as a 'sold' transaction with the job id.
+  const { data: usedParts } = await admin.from('job_parts').select('part_id, qty').eq('job_id', jobId);
+  for (const used of usedParts ?? []) {
+    const { data: invRow } = await admin
+      .from('inventory')
+      .select('id, qty_on_hand')
+      .eq('org_id', session.employee.org_id)
+      .eq('branch_id', job.branch_id)
+      .eq('part_id', used.part_id)
+      .maybeSingle();
+    if (invRow) {
+      const newQty = Math.max(0, invRow.qty_on_hand - used.qty);
+      await admin
+        .from('inventory')
+        .update({ qty_on_hand: newQty, updated_at: new Date().toISOString() })
+        .eq('id', invRow.id);
+      await admin.from('inventory_transactions').insert({
+        inventory_id: invRow.id,
+        type: 'sold',
+        qty: -used.qty,
+        reference_job_id: jobId,
+        performed_by: session.employee.id,
+        notes: `Used on job ${job.job_number}`
+      });
+    }
+  }
+
   return NextResponse.json({ success: true, invoice, job: updatedJob });
 }

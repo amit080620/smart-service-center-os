@@ -553,6 +553,77 @@ export interface Database {
           }
         ];
       };
+      inventory: {
+        Row: {
+          id: string;
+          org_id: string;
+          branch_id: string;
+          part_id: string;
+          qty_on_hand: number;
+          reorder_level: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          branch_id: string;
+          part_id: string;
+          qty_on_hand?: number;
+          reorder_level?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['inventory']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'inventory_part_id_fkey';
+            columns: ['part_id'];
+            isOneToOne: false;
+            referencedRelation: 'parts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'inventory_branch_id_fkey';
+            columns: ['branch_id'];
+            isOneToOne: false;
+            referencedRelation: 'branches';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      inventory_transactions: {
+        Row: {
+          id: string;
+          inventory_id: string;
+          type: string;
+          qty: number;
+          reference_job_id: string | null;
+          performed_by: string;
+          notes: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          inventory_id: string;
+          type: string;
+          qty: number;
+          reference_job_id?: string | null;
+          performed_by: string;
+          notes?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['inventory_transactions']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'inventory_transactions_inventory_id_fkey';
+            columns: ['inventory_id'];
+            isOneToOne: false;
+            referencedRelation: 'inventory';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

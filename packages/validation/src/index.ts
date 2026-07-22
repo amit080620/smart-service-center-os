@@ -106,3 +106,17 @@ export const recordPaymentSchema = z.object({
   method: z.enum(['cash', 'card', 'upi', 'bank_transfer', 'cheque'])
 });
 export type RecordPaymentInput = z.infer<typeof recordPaymentSchema>;
+
+export const addToInventorySchema = z.object({
+  partId: z.string().uuid('Select a valid part.'),
+  qtyOnHand: z.number().int().min(0, 'Quantity cannot be negative.'),
+  reorderLevel: z.number().int().min(0, 'Reorder level cannot be negative.').optional().default(5)
+});
+export type AddToInventoryInput = z.infer<typeof addToInventorySchema>;
+
+export const adjustInventorySchema = z.object({
+  type: z.enum(['received', 'adjusted']),
+  qty: z.number().int().refine((n) => n !== 0, 'Quantity cannot be zero.'),
+  notes: z.string().trim().optional().default('')
+});
+export type AdjustInventoryInput = z.infer<typeof adjustInventorySchema>;

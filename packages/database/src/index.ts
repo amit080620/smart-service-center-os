@@ -20,6 +20,8 @@ export type {
   JobStatusLog,
   Invoice,
   Payment,
+  Inventory,
+  InventoryTransaction,
   SessionContext
 } from './types';
 export type { Database } from './database.types';
