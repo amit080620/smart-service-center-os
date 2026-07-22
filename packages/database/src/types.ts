@@ -97,6 +97,33 @@ export interface Vehicle {
   deleted_at: string | null;
 }
 
+export interface Service {
+  id: string;
+  org_id: string;
+  name: string;
+  description: string;
+  base_cost: number;
+  est_duration_minutes: number;
+  category: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Part {
+  id: string;
+  org_id: string;
+  name: string;
+  sku: string;
+  description: string;
+  category: string;
+  supplier: string;
+  unit_cost: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface SessionContext {
   employee: Employee;
   org: Organization;

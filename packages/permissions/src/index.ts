@@ -41,6 +41,10 @@ export function canViewAuditLog(role: Role): boolean {
   return role === ROLES.ORG_OWNER || role === ROLES.SUPER_ADMIN || role === ROLES.BRANCH_MANAGER;
 }
 
+export function canManageServicesCatalog(role: Role): boolean {
+  return MANAGEMENT_ROLES.includes(role);
+}
+
 export function canManagePartsCatalog(role: Role): boolean {
   return MANAGEMENT_ROLES.includes(role) || role === ROLES.PARTS_CLERK;
 }

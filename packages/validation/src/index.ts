@@ -44,3 +44,22 @@ export const vehicleSchema = z.object({
   notes: z.string().trim().optional().default('')
 });
 export type VehicleInput = z.infer<typeof vehicleSchema>;
+
+export const serviceSchema = z.object({
+  name: z.string().trim().min(1, 'Service name is required.'),
+  description: z.string().trim().optional().default(''),
+  baseCost: z.number().min(0, 'Cost cannot be negative.'),
+  estDurationMinutes: z.number().int().min(0).optional().default(60),
+  category: z.string().trim().optional().default('general')
+});
+export type ServiceInput = z.infer<typeof serviceSchema>;
+
+export const partSchema = z.object({
+  name: z.string().trim().min(1, 'Part name is required.'),
+  sku: z.string().trim().min(1, 'SKU is required.'),
+  description: z.string().trim().optional().default(''),
+  category: z.string().trim().optional().default('general'),
+  supplier: z.string().trim().optional().default(''),
+  unitCost: z.number().min(0, 'Cost cannot be negative.')
+});
+export type PartInput = z.infer<typeof partSchema>;

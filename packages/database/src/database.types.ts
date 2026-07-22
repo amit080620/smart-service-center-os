@@ -240,6 +240,80 @@ export interface Database {
           }
         ];
       };
+      services: {
+        Row: {
+          id: string;
+          org_id: string;
+          name: string;
+          description: string;
+          base_cost: number;
+          est_duration_minutes: number;
+          category: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          name: string;
+          description?: string;
+          base_cost: number;
+          est_duration_minutes?: number;
+          category?: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['services']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'services_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      parts: {
+        Row: {
+          id: string;
+          org_id: string;
+          name: string;
+          sku: string;
+          description: string;
+          category: string;
+          supplier: string;
+          unit_cost: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          name: string;
+          sku: string;
+          description?: string;
+          category?: string;
+          supplier?: string;
+          unit_cost: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['parts']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'parts_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
