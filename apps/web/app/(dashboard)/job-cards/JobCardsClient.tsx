@@ -13,6 +13,7 @@ interface JobCard {
   plate_number: string;
   estimated_cost: number;
   created_at: string;
+  technician_name: string | null;
 }
 
 interface Customer {
@@ -236,6 +237,7 @@ export default function JobCardsClient({
                     </div>
                     <div className="text-sm text-slate-300 mt-1 truncate">
                       {job.customer_name} · {job.vehicle_label} ({job.plate_number})
+                      {job.technician_name && <span className="text-amber-500/70"> · {job.technician_name}</span>}
                     </div>
                   </div>
                   <div className="text-right shrink-0">

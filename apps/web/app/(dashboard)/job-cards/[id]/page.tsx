@@ -16,6 +16,12 @@ interface JobDetail {
   notes: string;
   estimated_cost: number;
   final_cost: number;
+  assigned_technician_id: string | null;
+  technician_name: string | null;
+}
+interface Technician {
+  id: string;
+  full_name: string;
 }
 interface LineService {
   id: string;
@@ -75,6 +81,8 @@ export default function JobCardDetailPage() {
   const [parts, setParts] = useState<LinePart[]>([]);
   const [canEditCompleted, setCanEditCompleted] = useState(false);
   const [statusLogs, setStatusLogs] = useState<StatusLog[]>([]);
+  const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [assigningTech, setAssigningTech] = useState(false);
   const [serviceCatalog, setServiceCatalog] = useState<Catalog[]>([]);
   const [partCatalog, setPartCatalog] = useState<Catalog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,6 +108,7 @@ export default function JobCardDetailPage() {
       setServices(data.services);
       setParts(data.parts);
       setStatusLogs(data.statusLogs);
+      setTechnicians(data.technicians ?? []);
       setCanEditCompleted(data.canEditCompleted ?? false);
     }
     if (servicesRes.ok) setServiceCatalog(await servicesRes.json());
@@ -217,6 +226,24 @@ export default function JobCardDetailPage() {
     loadAll();
   }
 
+  async function handleAssignTechnician(technicianId: string) {
+    setAssigningTech(true);
+    setError(null);
+    const res = await fetch(`/api/job-cards/${jobId}/assign-technician`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ technicianId: technicianId || null })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error?.message ?? 'Could not assign technician.');
+      setAssigningTech(false);
+      return;
+    }
+    setAssigningTech(false);
+    loadAll();
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 p-8">
@@ -312,6 +339,32 @@ export default function JobCardDetailPage() {
           <div className="col-span-2">
             <div className="text-xs font-mono text-slate-500 uppercase">Total Estimate</div>
             <div className="text-amber-500 font-semibold mt-0.5">₹{job.estimated_cost.toLocaleString()}</div>
+          </div>
+          <div className="col-span-2 sm:col-span-4">
+            <div className="text-xs font-mono text-slate-500 uppercase mb-1">Assigned Technician</div>
+            {technicians.length === 0 ? (
+              <div className="text-slate-500 text-xs">
+                No technicians on staff yet —{' '}
+                <a href="/employees" className="underline">
+                  add one
+                </a>
+                .
+              </div>
+            ) : (
+              <select
+                value={job.assigned_technician_id ?? ''}
+                onChange={(e) => handleAssignTechnician(e.target.value)}
+                disabled={assigningTech}
+                className="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg py-2 px-3 text-sm outline-none disabled:opacity-50"
+              >
+                <option value="">Unassigned</option>
+                {technicians.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.full_name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           {job.notes && (
             <div className="col-span-2 sm:col-span-4">

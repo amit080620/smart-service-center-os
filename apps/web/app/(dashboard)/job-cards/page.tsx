@@ -10,7 +10,7 @@ export default async function JobCardsPage() {
   }
 
   const admin = createSupabaseAdminClient();
-  const [{ data: jobs }, { data: customers }, { data: vehicles }] = await Promise.all([
+  const [{ data: jobs }, { data: customers }, { data: vehicles }, { data: technicians }] = await Promise.all([
     admin
       .from('job_cards')
       .select('*')
@@ -26,7 +26,8 @@ export default async function JobCardsPage() {
       .from('vehicles')
       .select('id, customer_id, plate_number, make, model')
       .eq('org_id', session.employee.org_id)
-      .is('deleted_at', null)
+      .is('deleted_at', null),
+    admin.from('employees').select('id, full_name').eq('org_id', session.employee.org_id).eq('role', 'technician')
   ]);
 
   // Same populate logic the API route uses for the list view — done here
@@ -34,11 +35,13 @@ export default async function JobCardsPage() {
   const populatedJobs = (jobs ?? []).map((job) => {
     const customer = customers?.find((c) => c.id === job.customer_id);
     const vehicle = vehicles?.find((v) => v.id === job.vehicle_id);
+    const technician = technicians?.find((t) => t.id === job.assigned_technician_id);
     return {
       ...job,
       customer_name: customer ? `${customer.first_name} ${customer.last_name}`.trim() : 'Unknown',
       vehicle_label: vehicle ? `${vehicle.make} ${vehicle.model}` : 'Unknown',
-      plate_number: vehicle?.plate_number ?? ''
+      plate_number: vehicle?.plate_number ?? '',
+      technician_name: technician?.full_name ?? null
     };
   });
 

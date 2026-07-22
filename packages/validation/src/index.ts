@@ -120,3 +120,20 @@ export const adjustInventorySchema = z.object({
   notes: z.string().trim().optional().default('')
 });
 export type AdjustInventoryInput = z.infer<typeof adjustInventorySchema>;
+
+export const createEmployeeSchema = z.object({
+  fullName: z.string().trim().min(2, 'Enter the employee\u2019s full name.'),
+  email: z.string().trim().toLowerCase().email('Enter a valid email address.'),
+  phone: z.string().trim().optional().default(''),
+  role: z.enum(['super_admin', 'branch_manager', 'hr', 'accountant', 'parts_clerk', 'technician', 'reception']),
+  hireDate: z.string().optional(),
+  monthlySalary: z.number().min(0).optional(),
+  hourlyRate: z.number().min(0).optional()
+});
+export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>;
+
+export const updateEmployeeSchema = z.object({
+  role: z.enum(['super_admin', 'branch_manager', 'hr', 'accountant', 'parts_clerk', 'technician', 'reception']).optional(),
+  status: z.enum(['active', 'inactive']).optional()
+});
+export type UpdateEmployeeInput = z.infer<typeof updateEmployeeSchema>;
