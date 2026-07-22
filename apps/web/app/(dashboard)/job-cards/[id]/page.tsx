@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ClipboardList, Wrench, Package, Plus, Clock } from 'lucide-react';
+import { ClipboardList, Wrench, Package, Plus, Clock, Trash2 } from 'lucide-react';
 
 interface JobDetail {
   id: string;
@@ -73,6 +73,7 @@ export default function JobCardDetailPage() {
   const [job, setJob] = useState<JobDetail | null>(null);
   const [services, setServices] = useState<LineService[]>([]);
   const [parts, setParts] = useState<LinePart[]>([]);
+  const [canEditCompleted, setCanEditCompleted] = useState(false);
   const [statusLogs, setStatusLogs] = useState<StatusLog[]>([]);
   const [serviceCatalog, setServiceCatalog] = useState<Catalog[]>([]);
   const [partCatalog, setPartCatalog] = useState<Catalog[]>([]);
@@ -99,6 +100,7 @@ export default function JobCardDetailPage() {
       setServices(data.services);
       setParts(data.parts);
       setStatusLogs(data.statusLogs);
+      setCanEditCompleted(data.canEditCompleted ?? false);
     }
     if (servicesRes.ok) setServiceCatalog(await servicesRes.json());
     if (partsRes.ok) setPartCatalog(await partsRes.json());
@@ -184,6 +186,37 @@ export default function JobCardDetailPage() {
     loadAll();
   }
 
+  async function handleDeleteLineItem(type: 'service' | 'part', lineItemId: string) {
+    if (!confirm('Remove this item? This cannot be undone.')) return;
+    setError(null);
+    const res = await fetch(`/api/job-cards/${jobId}/line-items/${lineItemId}?type=${type}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error?.message ?? 'Could not remove item.');
+      return;
+    }
+    loadAll();
+  }
+
+  async function handleUpdateQty(type: 'service' | 'part', lineItemId: string, newQty: number) {
+    if (newQty <= 0) {
+      handleDeleteLineItem(type, lineItemId);
+      return;
+    }
+    setError(null);
+    const res = await fetch(`/api/job-cards/${jobId}/line-items/${lineItemId}?type=${type}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ qty: newQty })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error?.message ?? 'Could not update quantity.');
+      return;
+    }
+    loadAll();
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 p-8">
@@ -206,6 +239,11 @@ export default function JobCardDetailPage() {
   // 'delivered' (handing the vehicle back), so only 'delivered'/
   // 'cancelled' should stop status progression entirely.
   const canProgressStatus = !['delivered', 'cancelled'].includes(job.status);
+  // Line items can be added/edited/removed normally on an open job. Once
+  // completed, only management roles can still touch them (server also
+  // enforces a 15-day window from completion — this client check is just
+  // for not showing controls that would obviously fail).
+  const canEditLineItems = !isLocked || (job.status === 'completed' && canEditCompleted);
   const currentIndex = STATUS_FLOW.indexOf(job.status);
   const nextStatus = currentIndex >= 0 && currentIndex < STATUS_FLOW.length - 1 ? STATUS_FLOW[currentIndex + 1] : null;
 
@@ -289,7 +327,7 @@ export default function JobCardDetailPage() {
             <h2 className="font-semibold flex items-center gap-2 text-sm">
               <Wrench className="w-4 h-4 text-amber-500" /> Services
             </h2>
-            {!isLocked && (
+            {canEditLineItems && (
               <button
                 onClick={() => setShowServiceForm(!showServiceForm)}
                 className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer"
@@ -298,6 +336,11 @@ export default function JobCardDetailPage() {
               </button>
             )}
           </div>
+          {job.status === 'completed' && canEditCompleted && (
+            <div className="px-4 py-2 bg-amber-950/20 text-amber-300 text-xs border-b border-slate-800">
+              Editing a completed job — changes will update the invoice too.
+            </div>
+          )}
           {showServiceForm && (
             <div className="p-4 border-b border-slate-800 flex gap-2">
               <select
@@ -328,7 +371,34 @@ export default function JobCardDetailPage() {
               {services.map((s) => (
                 <div key={s.id} className="p-3 px-4 flex items-center justify-between gap-3 text-sm">
                   <span className="text-slate-300 truncate">{s.service_name}</span>
-                  <span className="font-mono text-amber-500 shrink-0">₹{(s.qty * s.unit_cost).toLocaleString()}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {canEditLineItems && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleUpdateQty('service', s.id, s.qty - 1)}
+                          className="w-6 h-6 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-400 cursor-pointer text-xs"
+                        >
+                          −
+                        </button>
+                        <span className="text-xs text-slate-500 w-4 text-center">{s.qty}</span>
+                        <button
+                          onClick={() => handleUpdateQty('service', s.id, s.qty + 1)}
+                          className="w-6 h-6 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-400 cursor-pointer text-xs"
+                        >
+                          +
+                        </button>
+                      </div>
+                    )}
+                    <span className="font-mono text-amber-500">₹{(s.qty * s.unit_cost).toLocaleString()}</span>
+                    {canEditLineItems && (
+                      <button
+                        onClick={() => handleDeleteLineItem('service', s.id)}
+                        className="text-slate-600 hover:text-red-400 cursor-pointer p-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -341,7 +411,7 @@ export default function JobCardDetailPage() {
             <h2 className="font-semibold flex items-center gap-2 text-sm">
               <Package className="w-4 h-4 text-amber-500" /> Parts
             </h2>
-            {!isLocked && (
+            {canEditLineItems && (
               <button
                 onClick={() => setShowPartForm(!showPartForm)}
                 className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer"
@@ -386,10 +456,35 @@ export default function JobCardDetailPage() {
             <div className="divide-y divide-slate-800/50">
               {parts.map((p) => (
                 <div key={p.id} className="p-3 px-4 flex items-center justify-between gap-3 text-sm">
-                  <span className="text-slate-300 truncate">
-                    {p.part_name} <span className="text-slate-500 font-mono text-xs">×{p.qty}</span>
-                  </span>
-                  <span className="font-mono text-amber-500 shrink-0">₹{(p.qty * p.unit_cost).toLocaleString()}</span>
+                  <span className="text-slate-300 truncate">{p.part_name}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {canEditLineItems && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleUpdateQty('part', p.id, p.qty - 1)}
+                          className="w-6 h-6 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-400 cursor-pointer text-xs"
+                        >
+                          −
+                        </button>
+                        <span className="text-xs text-slate-500 w-4 text-center">{p.qty}</span>
+                        <button
+                          onClick={() => handleUpdateQty('part', p.id, p.qty + 1)}
+                          className="w-6 h-6 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-400 cursor-pointer text-xs"
+                        >
+                          +
+                        </button>
+                      </div>
+                    )}
+                    <span className="font-mono text-amber-500">₹{(p.qty * p.unit_cost).toLocaleString()}</span>
+                    {canEditLineItems && (
+                      <button
+                        onClick={() => handleDeleteLineItem('part', p.id)}
+                        className="text-slate-600 hover:text-red-400 cursor-pointer p-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

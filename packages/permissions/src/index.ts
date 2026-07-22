@@ -48,3 +48,13 @@ export function canManageServicesCatalog(role: Role): boolean {
 export function canManagePartsCatalog(role: Role): boolean {
   return MANAGEMENT_ROLES.includes(role) || role === ROLES.PARTS_CLERK;
 }
+
+// Editing a job's services/parts AFTER it has already been completed and
+// billed is a stricter action than normal editing (it means correcting
+// something that already went into a real invoice) — restricted to
+// management roles, and further time-boxed by the caller (15 days from
+// invoice creation) since indefinite editing of an issued invoice is not
+// good practice even for admins.
+export function canEditCompletedJob(role: Role): boolean {
+  return MANAGEMENT_ROLES.includes(role);
+}

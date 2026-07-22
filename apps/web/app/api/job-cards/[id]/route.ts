@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionContext } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
+import { canEditCompletedJob } from '@smartbizos/permissions';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSessionContext();
@@ -61,6 +62,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     },
     services: populatedServices,
     parts: populatedParts,
-    statusLogs: statusLogs ?? []
+    statusLogs: statusLogs ?? [],
+    // Lets the client show delete/qty-edit controls only for management
+    // roles once a job is completed — the API routes enforce this too,
+    // this is purely so the UI doesn't show buttons that would just fail.
+    canEditCompleted: canEditCompletedJob(session.employee.role)
   });
 }

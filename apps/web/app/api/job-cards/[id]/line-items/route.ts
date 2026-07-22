@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionContext } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
 import { addLineItemSchema } from '@smartbizos/validation';
+import { canEditCompletedJob } from '@smartbizos/permissions';
+import { syncJobAndInvoiceTotals } from '../_lib/syncJobTotals';
+
+const EDIT_WINDOW_DAYS = 15;
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSessionContext();
@@ -24,13 +28,38 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: { code: 'NOT_FOUND', message: 'Job card not found in your organization.' } }, { status: 404 });
   }
 
-  // Locked once completed/delivered/cancelled — same rule as the previous
-  // build: a finished job's line items are frozen.
-  if (['completed', 'delivered', 'cancelled'].includes(job.status)) {
+  // Once cancelled, or once delivered, or once past the admin edit window
+  // after completion, line items are permanently frozen for everyone.
+  if (job.status === 'cancelled' || job.status === 'delivered') {
     return NextResponse.json(
-      { error: { code: 'LOCKED', message: 'This job card is completed or delivered and cannot be edited.' } },
+      { error: { code: 'LOCKED', message: 'This job card is delivered or cancelled and cannot be edited.' } },
       { status: 400 }
     );
+  }
+
+  if (job.status === 'completed') {
+    // Completed jobs can only be edited by management roles, and only
+    // within EDIT_WINDOW_DAYS of the original completion — see
+    // packages/permissions for the role rule.
+    if (!canEditCompletedJob(session.employee.role)) {
+      return NextResponse.json(
+        { error: { code: 'FORBIDDEN', message: 'Only managers/owners can edit a completed job\u2019s items.' } },
+        { status: 403 }
+      );
+    }
+    const completedAt = job.completed_at ? new Date(job.completed_at) : null;
+    const daysSinceCompletion = completedAt ? (Date.now() - completedAt.getTime()) / (1000 * 60 * 60 * 24) : Infinity;
+    if (daysSinceCompletion > EDIT_WINDOW_DAYS) {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'EDIT_WINDOW_EXPIRED',
+            message: `This job was completed more than ${EDIT_WINDOW_DAYS} days ago and can no longer be edited.`
+          }
+        },
+        { status: 400 }
+      );
+    }
   }
 
   const body = await req.json();
@@ -53,9 +82,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: { code: 'NOT_FOUND', message: 'Catalog item not found in your organization.' } }, { status: 404 });
   }
 
-  // Branched explicitly (not a computed property key) — Supabase's strict
-  // per-table Insert types reject a dynamically-keyed object even when the
-  // key is one of the valid union members at runtime.
   const insertError =
     parsed.data.type === 'service'
       ? (
@@ -78,27 +104,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: { code: 'DB_ERROR', message: insertError.message } }, { status: 500 });
   }
 
-  // Recalculate estimated_cost from all line items — single source of
-  // truth is always the sum of what's actually stored, not an
-  // incrementally-tracked running total (which can drift).
-  const [{ data: services }, { data: parts }] = await Promise.all([
-    admin.from('job_services').select('qty, unit_cost').eq('job_id', jobId),
-    admin.from('job_parts').select('qty, unit_cost').eq('job_id', jobId)
-  ]);
-  const total =
-    (services ?? []).reduce((sum, s) => sum + s.qty * s.unit_cost, 0) +
-    (parts ?? []).reduce((sum, p) => sum + p.qty * p.unit_cost, 0);
+  const cgstRate = Number(session.org.settings.cgst_rate ?? 9);
+  const sgstRate = Number(session.org.settings.sgst_rate ?? 9);
+  await syncJobAndInvoiceTotals(admin, jobId, session.employee.org_id, cgstRate, sgstRate);
 
-  const { data: updatedJob, error: updateError } = await admin
-    .from('job_cards')
-    .update({ estimated_cost: total, final_cost: total, updated_at: new Date().toISOString() })
-    .eq('id', jobId)
-    .select()
-    .single();
-
-  if (updateError) {
-    return NextResponse.json({ error: { code: 'DB_ERROR', message: updateError.message } }, { status: 500 });
+  if (job.status === 'completed') {
+    await admin.from('job_status_logs').insert({
+      job_id: jobId,
+      old_status: 'completed',
+      new_status: 'completed',
+      changed_by: session.employee.id,
+      note: `Item added after completion by ${session.employee.full_name} (within edit window) — invoice updated.`
+    });
   }
 
+  const { data: updatedJob } = await admin.from('job_cards').select('*').eq('id', jobId).maybeSingle();
   return NextResponse.json({ success: true, job: updatedJob });
 }
