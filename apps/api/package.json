@@ -1,0 +1,9 @@
+{
+  "name": "@smartbizos/api",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Reserved for a future always-on backend process (background jobs, webhook listeners) if ever needed. Not built — the current API layer lives in apps/web/app/api as Next.js Route Handlers, deployed natively to Vercel with zero adapter risk.",
+  "scripts": {
+    "dev": "echo 'apps/api is reserved, not yet built — see package.json description'"
+  }
+}

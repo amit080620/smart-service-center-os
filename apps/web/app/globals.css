@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+/* ==========================================
+   SMARTBIZOS DESIGN TOKENS
+   ------------------------------------------
+   Direction: "Workshop Signal" — carried forward from the previous
+   build, where it replaced the generic near-black+single-accent AI
+   default. Pulled from the actual visual language of a garage floor:
+   hazard/safety-yellow signage, diagnostic-scanner teal for live data,
+   warm neutral graphite base instead of blue-tinted "SaaS dashboard
+   slate." Signature element: gauge/dial arcs on key numbers.
+   ========================================== */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+
+  --color-slate-950: #15161a;
+  --color-slate-900: #1c1e23;
+  --color-slate-850: #232529;
+  --color-slate-800: #2b2e34;
+  --color-slate-700: #3d4149;
+  --color-slate-600: #565b64;
+  --color-slate-500: #787e88;
+  --color-slate-400: #9ba1ab;
+  --color-slate-300: #c2c7cf;
+  --color-slate-200: #dde0e5;
+  --color-slate-100: #eef0f2;
+
+  --color-amber-600: #d9a316;
+  --color-amber-500: #ffc93c;
+  --color-amber-400: #ffd666;
+  --color-amber-300: #ffe299;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid #ffc93c;
+  outline-offset: 2px;
+}
+
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: fadeIn 200ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-fadeIn {
+    animation: none;
+  }
+}
