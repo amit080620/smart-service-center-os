@@ -127,8 +127,14 @@ export default async function InvoicePrintPage({
             <span>Subtotal</span>
             <span>{invoice.subtotal.toFixed(2)}</span>
           </div>
+          {invoice.discount > 0 && (
+            <div className="flex justify-between">
+              <span>Discount</span>
+              <span>-{invoice.discount.toFixed(2)}</span>
+            </div>
+          )}
           <div className="flex justify-between">
-            <span>GST</span>
+            <span>GST ({invoice.tax_type === 'igst' ? 'IGST' : 'CGST+SGST'})</span>
             <span>{invoice.tax.toFixed(2)}</span>
           </div>
           <div className="flex justify-between font-bold text-[13px]">
@@ -238,6 +244,12 @@ export default async function InvoicePrintPage({
               <span className="text-gray-600">Subtotal</span>
               <span>₹{invoice.subtotal.toLocaleString('en-IN')}</span>
             </div>
+            {invoice.discount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Discount</span>
+                <span>−₹{invoice.discount.toLocaleString('en-IN')}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-gray-600">GST</span>
               <span>₹{invoice.tax.toLocaleString('en-IN')}</span>

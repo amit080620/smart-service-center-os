@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { useParams } from 'next/navigation';
-import { Receipt, IndianRupee, Wrench, Package, Printer, MessageCircle } from 'lucide-react';
+import { Receipt, IndianRupee, Wrench, Package, Printer, MessageCircle, Pencil } from 'lucide-react';
 
 interface InvoiceDetail {
   id: string;
@@ -14,6 +14,8 @@ interface InvoiceDetail {
   vehicle_label: string;
   plate_number: string;
   subtotal: number;
+  discount: number;
+  tax_type: string;
   tax: number;
   total: number;
   amount_paid: number;
@@ -50,6 +52,11 @@ export default function InvoiceDetailPage() {
   const [services, setServices] = useState<LineItem[]>([]);
   const [parts, setParts] = useState<LineItem[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [canEdit, setCanEdit] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editDiscount, setEditDiscount] = useState('0');
+  const [editTaxType, setEditTaxType] = useState<'cgst_sgst' | 'igst'>('cgst_sgst');
+  const [editSubmitting, setEditSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -66,6 +73,9 @@ export default function InvoiceDetailPage() {
       setServices(data.services);
       setParts(data.parts);
       setPayments(data.payments);
+      setCanEdit(data.canEdit ?? false);
+      setEditDiscount(String(data.invoice.discount ?? 0));
+      setEditTaxType(data.invoice.tax_type === 'igst' ? 'igst' : 'cgst_sgst');
     }
     setLoading(false);
   }
@@ -95,6 +105,29 @@ export default function InvoiceDetailPage() {
 
     setAmount('');
     setSubmitting(false);
+    loadAll();
+  }
+
+  async function handleEditInvoice(e: FormEvent) {
+    e.preventDefault();
+    setEditSubmitting(true);
+    setError(null);
+
+    const res = await fetch(`/api/invoices/${invoiceId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discount: Number(editDiscount), taxType: editTaxType })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error?.message ?? 'Could not update invoice.');
+      setEditSubmitting(false);
+      return;
+    }
+
+    setShowEditForm(false);
+    setEditSubmitting(false);
     loadAll();
   }
 
@@ -161,7 +194,65 @@ export default function InvoiceDetailPage() {
               <MessageCircle className="w-4 h-4" /> WhatsApp
             </a>
           )}
+          {canEdit && (
+            <button
+              onClick={() => setShowEditForm(!showEditForm)}
+              className="bg-slate-800 hover:bg-slate-700 text-amber-400 text-sm font-medium px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all"
+            >
+              <Pencil className="w-4 h-4" /> Edit Invoice
+            </button>
+          )}
         </div>
+
+        {canEdit && !showEditForm && (
+          <p className="text-xs text-slate-500">
+            You can edit this invoice's discount and GST type — managers/owners only, within 15 days of issue.
+          </p>
+        )}
+
+        {showEditForm && (
+          <form
+            onSubmit={handleEditInvoice}
+            className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4 animate-fadeIn"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Discount (₹)</label>
+                <input
+                  type="number"
+                  value={editDiscount}
+                  onChange={(e) => setEditDiscount(e.target.value)}
+                  min="0"
+                  max={invoice.subtotal}
+                  disabled={editSubmitting}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">GST Type</label>
+                <select
+                  value={editTaxType}
+                  onChange={(e) => setEditTaxType(e.target.value as 'cgst_sgst' | 'igst')}
+                  disabled={editSubmitting}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
+                >
+                  <option value="cgst_sgst">CGST + SGST (same state)</option>
+                  <option value="igst">IGST (inter-state)</option>
+                </select>
+              </div>
+            </div>
+            <p className="text-xs text-slate-500">
+              Discount is applied before GST. Changing GST type recalculates tax using your organization's configured rates.
+            </p>
+            <button
+              type="submit"
+              disabled={editSubmitting}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2.5 rounded-xl text-sm cursor-pointer disabled:opacity-50"
+            >
+              {editSubmitting ? 'Saving...' : 'Save Changes'}
+            </button>
+          </form>
+        )}
 
         {error && (
           <div className="bg-red-950/40 border border-red-900 text-red-200 text-xs rounded-xl p-3">{error}</div>
@@ -202,8 +293,14 @@ export default function InvoiceDetailPage() {
               <span>Subtotal</span>
               <span className="font-mono">₹{invoice.subtotal.toLocaleString()}</span>
             </div>
+            {invoice.discount > 0 && (
+              <div className="flex justify-between text-red-400">
+                <span>Discount</span>
+                <span className="font-mono">−₹{invoice.discount.toLocaleString()}</span>
+              </div>
+            )}
             <div className="flex justify-between text-slate-400">
-              <span>GST</span>
+              <span>GST ({invoice.tax_type === 'igst' ? 'IGST' : 'CGST+SGST'})</span>
               <span className="font-mono">₹{invoice.tax.toLocaleString()}</span>
             </div>
             <div className="flex justify-between font-semibold text-amber-500 pt-1.5 border-t border-slate-800">

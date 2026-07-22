@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ClipboardList, Plus, Gauge } from 'lucide-react';
+import { ClipboardList, Plus, Gauge, Search } from 'lucide-react';
 
 interface JobCard {
   id: string;
@@ -68,6 +68,7 @@ export default function JobCardsClient({
   const customers = initialCustomers;
   const vehicles = initialVehicles;
   const [showForm, setShowForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -77,6 +78,18 @@ export default function JobCardsClient({
   const [notes, setNotes] = useState('');
 
   const vehiclesForCustomer = vehicles.filter((v) => v.customer_id === customerId);
+
+  const filteredJobs = jobs.filter((job) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      job.job_number.toLowerCase().includes(q) ||
+      job.customer_name.toLowerCase().includes(q) ||
+      job.vehicle_label.toLowerCase().includes(q) ||
+      job.plate_number.toLowerCase().includes(q) ||
+      (job.technician_name ?? '').toLowerCase().includes(q)
+    );
+  });
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
@@ -118,6 +131,16 @@ export default function JobCardsClient({
             <Plus className="w-4 h-4" />
             New Job Card
           </button>
+        </div>
+
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by job number, customer, vehicle, plate, or technician..."
+            className="w-full bg-slate-900/80 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none"
+          />
         </div>
 
         {customers.length === 0 && (
@@ -220,9 +243,11 @@ export default function JobCardsClient({
         <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
           {jobs.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-sm">No job cards yet — create your first one above.</div>
+          ) : filteredJobs.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 text-sm">No job cards match "{searchQuery}".</div>
           ) : (
             <div className="divide-y divide-slate-800/50">
-              {jobs.map((job) => (
+              {filteredJobs.map((job) => (
                 <a
                   key={job.id}
                   href={`/job-cards/${job.id}`}

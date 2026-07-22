@@ -2,7 +2,7 @@
 
 import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Plus, Phone, Mail } from 'lucide-react';
+import { Users, Plus, Phone, Mail, Search } from 'lucide-react';
 
 interface Customer {
   id: string;
@@ -16,6 +16,7 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showForm, setShowForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -23,6 +24,16 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+
+  const filteredCustomers = initialCustomers.filter((c) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      `${c.first_name} ${c.last_name}`.toLowerCase().includes(q) ||
+      c.phone.toLowerCase().includes(q) ||
+      (c.email ?? '').toLowerCase().includes(q)
+    );
+  });
 
   async function handleAddCustomer(e: FormEvent) {
     e.preventDefault();
@@ -71,6 +82,16 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
             <Plus className="w-4 h-4" />
             New Customer
           </button>
+        </div>
+
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name, phone, or email..."
+            className="w-full bg-slate-900/80 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none"
+          />
         </div>
 
         {showForm && (
@@ -136,9 +157,11 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
         <div className={`bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden transition-opacity ${isPending ? 'opacity-60' : ''}`}>
           {initialCustomers.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-sm">No customers yet — add your first one above.</div>
+          ) : filteredCustomers.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 text-sm">No customers match "{searchQuery}".</div>
           ) : (
             <div className="divide-y divide-slate-800/50">
-              {initialCustomers.map((c) => (
+              {filteredCustomers.map((c) => (
                 <div key={c.id} className="p-4 hover:bg-slate-900/40 transition-all">
                   <div className="font-semibold text-slate-200 truncate">
                     {c.first_name} {c.last_name}

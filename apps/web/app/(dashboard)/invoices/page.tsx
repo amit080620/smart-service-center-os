@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSessionContext } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
-import { Receipt, IndianRupee } from 'lucide-react';
+import { Receipt, IndianRupee, Search } from 'lucide-react';
 
 const STATUS_COLORS: Record<string, string> = {
   sent: 'bg-amber-900/50 text-amber-300',
@@ -13,12 +13,16 @@ const STATUS_COLORS: Record<string, string> = {
 // all (invoices are only ever generated automatically, never created
 // here directly), so there's no need for a separate Client Component
 // split like the other list pages. Data is fetched once, directly,
-// during server render.
-export default async function InvoicesPage() {
+// during server render. Search uses a plain GET form + URL param
+// (?q=...) rather than client-side state, for the same reason — no JS
+// needed at all, the form just reloads the page with the new query.
+export default async function InvoicesPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const session = await getSessionContext();
   if (!session) {
     redirect('/login');
   }
+
+  const { q } = await searchParams;
 
   const admin = createSupabaseAdminClient();
   const { data: invoices } = await admin
@@ -32,6 +36,8 @@ export default async function InvoicesPage() {
     invoice_number: string;
     job_number: string;
     customer_name: string;
+    customer_phone: string;
+    plate_number: string;
     total: number;
     balance_due: number;
     status: string;
@@ -39,25 +45,46 @@ export default async function InvoicesPage() {
 
   if (invoices && invoices.length > 0) {
     const jobIds = [...new Set(invoices.map((i) => i.job_id))];
-    const { data: jobs } = await admin.from('job_cards').select('id, job_number, customer_id').in('id', jobIds);
+    const { data: jobs } = await admin.from('job_cards').select('id, job_number, customer_id, vehicle_id').in('id', jobIds);
     const customerIds = [...new Set((jobs ?? []).map((j) => j.customer_id))];
-    const { data: customers } = customerIds.length
-      ? await admin.from('customers').select('id, first_name, last_name').in('id', customerIds)
-      : { data: [] };
+    const vehicleIds = [...new Set((jobs ?? []).map((j) => j.vehicle_id))];
+    const [{ data: customers }, { data: vehicles }] = await Promise.all([
+      customerIds.length
+        ? admin.from('customers').select('id, first_name, last_name, phone').in('id', customerIds)
+        : Promise.resolve({ data: [] }),
+      vehicleIds.length
+        ? admin.from('vehicles').select('id, plate_number').in('id', vehicleIds)
+        : Promise.resolve({ data: [] })
+    ]);
 
     populated = invoices.map((inv) => {
       const job = jobs?.find((j) => j.id === inv.job_id);
       const customer = job ? customers?.find((c) => c.id === job.customer_id) : null;
+      const vehicle = job ? vehicles?.find((v) => v.id === job.vehicle_id) : null;
       return {
         id: inv.id,
         invoice_number: inv.invoice_number,
         job_number: job?.job_number ?? 'Unknown',
         customer_name: customer ? `${customer.first_name} ${customer.last_name}`.trim() : 'Unknown',
+        customer_phone: customer?.phone ?? '',
+        plate_number: vehicle?.plate_number ?? '',
         total: inv.total,
         balance_due: inv.balance_due,
         status: inv.status
       };
     });
+
+    if (q?.trim()) {
+      const query = q.toLowerCase();
+      populated = populated.filter(
+        (i) =>
+          i.invoice_number.toLowerCase().includes(query) ||
+          i.job_number.toLowerCase().includes(query) ||
+          i.customer_name.toLowerCase().includes(query) ||
+          i.customer_phone.toLowerCase().includes(query) ||
+          i.plate_number.toLowerCase().includes(query)
+      );
+    }
   }
 
   return (
@@ -71,10 +98,20 @@ export default async function InvoicesPage() {
           <p className="text-sm text-slate-500 mt-1">GST invoices generated from completed job cards.</p>
         </div>
 
+        <form className="relative" action="/invoices" method="GET">
+          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            name="q"
+            defaultValue={q ?? ''}
+            placeholder="Search by invoice number, customer, phone, or plate..."
+            className="w-full bg-slate-900/80 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none"
+          />
+        </form>
+
         <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
           {populated.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-sm">
-              No invoices yet — invoices are generated automatically when a job card is completed.
+              {q?.trim() ? `No invoices match "${q}".` : 'No invoices yet — invoices are generated automatically when a job card is completed.'}
             </div>
           ) : (
             <div className="divide-y divide-slate-800/50">

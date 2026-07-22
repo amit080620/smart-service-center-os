@@ -2,7 +2,7 @@
 
 import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Car, Plus, Gauge } from 'lucide-react';
+import { Car, Plus, Gauge, Search } from 'lucide-react';
 
 interface Vehicle {
   id: string;
@@ -25,6 +25,16 @@ export default function VehiclesClient({ initialVehicles, initialCustomers }: { 
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const vehicles = initialVehicles;
+  const [searchQuery, setSearchQuery] = useState('');
+  const filteredVehicles = vehicles.filter((v) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      v.plate_number.toLowerCase().includes(q) ||
+      `${v.make} ${v.model}`.toLowerCase().includes(q) ||
+      customerName(v.customer_id).toLowerCase().includes(q)
+    );
+  });
   const customers = initialCustomers;
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +106,16 @@ export default function VehiclesClient({ initialVehicles, initialCustomers }: { 
             <Plus className="w-4 h-4" />
             New Vehicle
           </button>
+        </div>
+
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by plate number, make/model, or owner..."
+            className="w-full bg-slate-900/80 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none"
+          />
         </div>
 
         {customers.length === 0 && (
@@ -200,9 +220,11 @@ export default function VehiclesClient({ initialVehicles, initialCustomers }: { 
         <div className={`bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden transition-opacity ${isPending ? 'opacity-60' : ''}`}>
           {vehicles.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-sm">No vehicles yet — add your first one above.</div>
+          ) : filteredVehicles.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 text-sm">No vehicles match "{searchQuery}".</div>
           ) : (
             <div className="divide-y divide-slate-800/50">
-              {vehicles.map((v) => (
+              {filteredVehicles.map((v) => (
                 <div key={v.id} className="p-4 hover:bg-slate-900/40 transition-all">
                   <div className="font-semibold text-slate-200 truncate">
                     {v.make} {v.model} <span className="text-slate-500 font-normal">({v.year})</span>

@@ -107,6 +107,12 @@ export const recordPaymentSchema = z.object({
 });
 export type RecordPaymentInput = z.infer<typeof recordPaymentSchema>;
 
+export const editInvoiceSchema = z.object({
+  discount: z.number().min(0, 'Discount cannot be negative.'),
+  taxType: z.enum(['cgst_sgst', 'igst'])
+});
+export type EditInvoiceInput = z.infer<typeof editInvoiceSchema>;
+
 export const addToInventorySchema = z.object({
   partId: z.string().uuid('Select a valid part.'),
   qtyOnHand: z.number().int().min(0, 'Quantity cannot be negative.'),

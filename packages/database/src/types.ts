@@ -184,6 +184,8 @@ export interface Invoice {
   job_id: string;
   invoice_number: string;
   subtotal: number;
+  discount: number;
+  tax_type: string;
   tax: number;
   total: number;
   amount_paid: number;
