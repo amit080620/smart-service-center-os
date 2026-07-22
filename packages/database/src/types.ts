@@ -178,6 +178,31 @@ export interface JobStatusLog {
   note: string;
 }
 
+export interface Invoice {
+  id: string;
+  org_id: string;
+  job_id: string;
+  invoice_number: string;
+  subtotal: number;
+  tax: number;
+  total: number;
+  amount_paid: number;
+  balance_due: number;
+  status: string;
+  due_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Payment {
+  id: string;
+  invoice_id: string;
+  amount: number;
+  method: string;
+  paid_at: string;
+  recorded_by: string;
+}
+
 export interface SessionContext {
   employee: Employee;
   org: Organization;

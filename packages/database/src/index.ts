@@ -18,6 +18,8 @@ export type {
   JobService,
   JobPart,
   JobStatusLog,
+  Invoice,
+  Payment,
   SessionContext
 } from './types';
 export type { Database } from './database.types';

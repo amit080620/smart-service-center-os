@@ -58,9 +58,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     updates.approved_by = session.employee.id;
     updates.approved_at = new Date().toISOString();
   }
-  if (parsed.data.status === 'completed') {
-    updates.completed_at = new Date().toISOString();
-  }
   if (parsed.data.status === 'delivered') {
     updates.delivered_at = new Date().toISOString();
   }

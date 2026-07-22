@@ -81,15 +81,11 @@ export const addLineItemSchema = z.object({
 export type AddLineItemInput = z.infer<typeof addLineItemSchema>;
 
 export const updateJobStatusSchema = z.object({
-  // NOTE: 'completed' is included here as a plain status transition for
-  // now. In the previous build, reaching 'completed' was only possible via
-  // a dedicated endpoint that ALSO generated the invoice and deducted
-  // inventory in the same operation — preventing a job from being marked
-  // done with no invoice ever created. That endpoint depends on the
-  // Billing module, which doesn't exist yet in this rebuild. Once Billing
-  // is built, this should go back to excluding 'completed' here and
-  // route completion through that dedicated endpoint instead, the same
-  // way the previous system worked.
+  // 'completed' is deliberately NOT in this list — completing a job now
+  // requires POST /api/job-cards/[id]/complete, which generates the
+  // invoice and (eventually) deducts inventory in the same operation.
+  // Allowing 'completed' here would let a job be marked done with no
+  // invoice ever created — same rule the previous build enforced.
   status: z.enum([
     'received',
     'diagnosing',
@@ -97,7 +93,6 @@ export const updateJobStatusSchema = z.object({
     'awaiting_parts',
     'pending_approval',
     'approved',
-    'completed',
     'delivered',
     'cancelled'
   ]),
@@ -105,3 +100,9 @@ export const updateJobStatusSchema = z.object({
   note: z.string().trim().optional().default('')
 });
 export type UpdateJobStatusInput = z.infer<typeof updateJobStatusSchema>;
+
+export const recordPaymentSchema = z.object({
+  amount: z.number().min(0.01, 'Amount must be greater than zero.'),
+  method: z.enum(['cash', 'card', 'upi', 'bank_transfer', 'cheque'])
+});
+export type RecordPaymentInput = z.infer<typeof recordPaymentSchema>;

@@ -483,6 +483,76 @@ export interface Database {
           }
         ];
       };
+      invoices: {
+        Row: {
+          id: string;
+          org_id: string;
+          job_id: string;
+          invoice_number: string;
+          subtotal: number;
+          tax: number;
+          total: number;
+          amount_paid: number;
+          balance_due: number;
+          status: string;
+          due_date: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          job_id: string;
+          invoice_number: string;
+          subtotal: number;
+          tax: number;
+          total: number;
+          amount_paid?: number;
+          balance_due: number;
+          status?: string;
+          due_date: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['invoices']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'invoices_job_id_fkey';
+            columns: ['job_id'];
+            isOneToOne: false;
+            referencedRelation: 'job_cards';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      payments: {
+        Row: {
+          id: string;
+          invoice_id: string;
+          amount: number;
+          method: string;
+          paid_at: string;
+          recorded_by: string;
+        };
+        Insert: {
+          id?: string;
+          invoice_id: string;
+          amount: number;
+          method: string;
+          paid_at?: string;
+          recorded_by: string;
+        };
+        Update: Partial<Database['public']['Tables']['payments']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'payments_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'invoices';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

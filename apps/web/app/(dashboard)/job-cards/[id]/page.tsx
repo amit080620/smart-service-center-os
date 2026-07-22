@@ -128,6 +128,23 @@ export default function JobCardDetailPage() {
     loadAll();
   }
 
+  // Separate from handleStatusChange — completing a job goes through the
+  // dedicated endpoint that generates the invoice in the same operation,
+  // not the plain status-update endpoint (which deliberately rejects
+  // 'completed' entirely — see packages/validation).
+  async function handleCompleteJob() {
+    setStatusUpdating(true);
+    setError(null);
+    const res = await fetch(`/api/job-cards/${jobId}/complete`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error?.message ?? 'Could not complete this job.');
+      setStatusUpdating(false);
+      return;
+    }
+    window.location.href = `/invoices/${data.invoice.id}`;
+  }
+
   async function handleAddService() {
     const svc = serviceCatalog.find((s) => s.id === selectedServiceId);
     if (!svc) return;
@@ -184,6 +201,11 @@ export default function JobCardDetailPage() {
   }
 
   const isLocked = ['completed', 'delivered', 'cancelled'].includes(job.status);
+  // Separate from isLocked (which correctly freezes line items at
+  // 'completed') — status can still progress from 'completed' to
+  // 'delivered' (handing the vehicle back), so only 'delivered'/
+  // 'cancelled' should stop status progression entirely.
+  const canProgressStatus = !['delivered', 'cancelled'].includes(job.status);
   const currentIndex = STATUS_FLOW.indexOf(job.status);
   const nextStatus = currentIndex >= 0 && currentIndex < STATUS_FLOW.length - 1 ? STATUS_FLOW[currentIndex + 1] : null;
 
@@ -210,7 +232,21 @@ export default function JobCardDetailPage() {
         )}
 
         {/* Status progression */}
-        {!isLocked && nextStatus && (
+        {canProgressStatus && job.status === 'approved' && (
+          <div className="bg-emerald-950/30 border border-emerald-900/50 rounded-2xl p-5 flex items-center justify-between flex-wrap gap-3">
+            <div className="text-sm text-emerald-200">
+              This job is approved and ready to be completed — this will generate the GST invoice.
+            </div>
+            <button
+              onClick={handleCompleteJob}
+              disabled={statusUpdating}
+              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-medium px-4 py-2 rounded-xl text-sm cursor-pointer disabled:opacity-50 whitespace-nowrap"
+            >
+              {statusUpdating ? 'Completing...' : 'Complete & Generate Invoice'}
+            </button>
+          </div>
+        )}
+        {canProgressStatus && job.status !== 'approved' && nextStatus && (
           <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
             <div className="text-sm text-slate-400">
               Move to next stage: <span className="text-slate-200 font-medium">{STATUS_LABELS[nextStatus]}</span>
