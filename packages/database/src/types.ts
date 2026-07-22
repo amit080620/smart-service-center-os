@@ -62,6 +62,41 @@ export interface Employee {
   deleted_at: string | null;
 }
 
+export interface Customer {
+  id: string;
+  org_id: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  email: string;
+  address: string;
+  whatsapp_opt_in: boolean;
+  last_synced_at: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface Vehicle {
+  id: string;
+  org_id: string;
+  customer_id: string;
+  plate_number: string;
+  vin: string;
+  make: string;
+  model: string;
+  year: number;
+  color: string;
+  odometer_km: number;
+  last_service_odometer: number | null;
+  next_service_date: string | null;
+  next_service_odometer: number | null;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
 export interface SessionContext {
   employee: Employee;
   org: Organization;

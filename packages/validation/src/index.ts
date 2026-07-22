@@ -21,3 +21,26 @@ export const signupSchema = z.object({
   contactPhone: z.string().trim().optional()
 });
 export type SignupInput = z.infer<typeof signupSchema>;
+
+export const customerSchema = z.object({
+  firstName: z.string().trim().min(1, 'First name is required.'),
+  lastName: z.string().trim().optional().default(''),
+  phone: z.string().trim().min(6, 'Enter a valid phone number.'),
+  email: z.string().trim().toLowerCase().email().optional().or(z.literal('')),
+  address: z.string().trim().optional().default(''),
+  whatsappOptIn: z.boolean().optional().default(true)
+});
+export type CustomerInput = z.infer<typeof customerSchema>;
+
+export const vehicleSchema = z.object({
+  customerId: z.string().uuid('Select a valid customer.'),
+  plateNumber: z.string().trim().min(2, 'Plate number is required.'),
+  vin: z.string().trim().optional().default(''),
+  make: z.string().trim().min(1, 'Make is required.'),
+  model: z.string().trim().min(1, 'Model is required.'),
+  year: z.number().int().min(1980).max(2100).optional(),
+  color: z.string().trim().optional().default(''),
+  odometerKm: z.number().int().min(0).optional().default(0),
+  notes: z.string().trim().optional().default('')
+});
+export type VehicleInput = z.infer<typeof vehicleSchema>;

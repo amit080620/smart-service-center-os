@@ -143,6 +143,103 @@ export interface Database {
           }
         ];
       };
+      customers: {
+        Row: {
+          id: string;
+          org_id: string;
+          first_name: string;
+          last_name: string;
+          phone: string;
+          email: string;
+          address: string;
+          whatsapp_opt_in: boolean;
+          last_synced_at: string | null;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          first_name: string;
+          last_name?: string;
+          phone: string;
+          email?: string;
+          address?: string;
+          whatsapp_opt_in?: boolean;
+          last_synced_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          deleted_at?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['customers']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'customers_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      vehicles: {
+        Row: {
+          id: string;
+          org_id: string;
+          customer_id: string;
+          plate_number: string;
+          vin: string;
+          make: string;
+          model: string;
+          year: number;
+          color: string;
+          odometer_km: number;
+          last_service_odometer: number | null;
+          next_service_date: string | null;
+          next_service_odometer: number | null;
+          notes: string;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          customer_id: string;
+          plate_number: string;
+          vin?: string;
+          make: string;
+          model: string;
+          year?: number;
+          color?: string;
+          odometer_km?: number;
+          last_service_odometer?: number | null;
+          next_service_date?: string | null;
+          next_service_odometer?: number | null;
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+          deleted_at?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['vehicles']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'vehicles_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'vehicles_customer_id_fkey';
+            columns: ['customer_id'];
+            isOneToOne: false;
+            referencedRelation: 'customers';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
