@@ -39,19 +39,15 @@ export async function getSessionContext(): Promise<SessionContext | null> {
     return null;
   }
 
-  const { data: org } = await admin
-    .from('organizations')
-    .select('*')
-    .eq('id', employee.org_id)
-    .is('deleted_at', null)
-    .maybeSingle();
-
-  const { data: branch } = await admin
-    .from('branches')
-    .select('*')
-    .eq('id', employee.branch_id)
-    .is('deleted_at', null)
-    .maybeSingle();
+  // org and branch lookups are independent of each other (both only need
+  // employee's ids, not each other's results) — running them in parallel
+  // instead of sequentially removes one full network round trip from
+  // EVERY protected page load, since this function runs at the top of
+  // every one of them.
+  const [{ data: org }, { data: branch }] = await Promise.all([
+    admin.from('organizations').select('*').eq('id', employee.org_id).is('deleted_at', null).maybeSingle(),
+    admin.from('branches').select('*').eq('id', employee.branch_id).is('deleted_at', null).maybeSingle()
+  ]);
 
   if (!org || !branch) {
     return null;
