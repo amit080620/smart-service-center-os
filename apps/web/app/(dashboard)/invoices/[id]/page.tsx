@@ -147,9 +147,9 @@ export default function InvoiceDetailPage() {
                 <Wrench className="w-3 h-3" /> Services
               </div>
               {services.map((s) => (
-                <div key={s.id} className="flex items-center justify-between text-sm py-1">
-                  <span className="text-slate-300">{s.name}</span>
-                  <span className="font-mono text-slate-400">₹{(s.qty * s.unit_cost).toLocaleString()}</span>
+                <div key={s.id} className="flex items-center justify-between gap-3 text-sm py-1">
+                  <span className="text-slate-300 truncate">{s.name}</span>
+                  <span className="font-mono text-slate-400 shrink-0">₹{(s.qty * s.unit_cost).toLocaleString()}</span>
                 </div>
               ))}
             </div>
@@ -160,11 +160,11 @@ export default function InvoiceDetailPage() {
                 <Package className="w-3 h-3" /> Parts
               </div>
               {parts.map((p) => (
-                <div key={p.id} className="flex items-center justify-between text-sm py-1">
-                  <span className="text-slate-300">
+                <div key={p.id} className="flex items-center justify-between gap-3 text-sm py-1">
+                  <span className="text-slate-300 truncate">
                     {p.name} <span className="text-slate-500 text-xs">×{p.qty}</span>
                   </span>
-                  <span className="font-mono text-slate-400">₹{(p.qty * p.unit_cost).toLocaleString()}</span>
+                  <span className="font-mono text-slate-400 shrink-0">₹{(p.qty * p.unit_cost).toLocaleString()}</span>
                 </div>
               ))}
             </div>

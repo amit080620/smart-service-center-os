@@ -60,3 +60,9 @@ html, body {
     animation: none;
   }
 }
+
+/* Respects the iPhone home-indicator safe area so the fixed bottom nav
+   doesn't sit flush against it. */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

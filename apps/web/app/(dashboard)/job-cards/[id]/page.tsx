@@ -247,7 +247,7 @@ export default function JobCardDetailPage() {
           </div>
         )}
         {canProgressStatus && job.status !== 'approved' && nextStatus && (
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex items-center justify-between flex-wrap gap-3">
             <div className="text-sm text-slate-400">
               Move to next stage: <span className="text-slate-200 font-medium">{STATUS_LABELS[nextStatus]}</span>
             </div>
@@ -326,9 +326,9 @@ export default function JobCardDetailPage() {
           ) : (
             <div className="divide-y divide-slate-800/50">
               {services.map((s) => (
-                <div key={s.id} className="p-3 px-4 flex items-center justify-between text-sm">
-                  <span className="text-slate-300">{s.service_name}</span>
-                  <span className="font-mono text-amber-500">₹{(s.qty * s.unit_cost).toLocaleString()}</span>
+                <div key={s.id} className="p-3 px-4 flex items-center justify-between gap-3 text-sm">
+                  <span className="text-slate-300 truncate">{s.service_name}</span>
+                  <span className="font-mono text-amber-500 shrink-0">₹{(s.qty * s.unit_cost).toLocaleString()}</span>
                 </div>
               ))}
             </div>
@@ -385,11 +385,11 @@ export default function JobCardDetailPage() {
           ) : (
             <div className="divide-y divide-slate-800/50">
               {parts.map((p) => (
-                <div key={p.id} className="p-3 px-4 flex items-center justify-between text-sm">
-                  <span className="text-slate-300">
+                <div key={p.id} className="p-3 px-4 flex items-center justify-between gap-3 text-sm">
+                  <span className="text-slate-300 truncate">
                     {p.part_name} <span className="text-slate-500 font-mono text-xs">×{p.qty}</span>
                   </span>
-                  <span className="font-mono text-amber-500">₹{(p.qty * p.unit_cost).toLocaleString()}</span>
+                  <span className="font-mono text-amber-500 shrink-0">₹{(p.qty * p.unit_cost).toLocaleString()}</span>
                 </div>
               ))}
             </div>
@@ -405,9 +405,9 @@ export default function JobCardDetailPage() {
           </div>
           <div className="divide-y divide-slate-800/50">
             {statusLogs.map((log) => (
-              <div key={log.id} className="p-3 px-4 text-xs text-slate-400 flex items-center justify-between">
-                <span>{log.note || `${log.old_status ?? 'created'} → ${log.new_status}`}</span>
-                <span className="font-mono text-slate-600">{new Date(log.changed_at).toLocaleString()}</span>
+              <div key={log.id} className="p-3 px-4 text-xs text-slate-400 flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                <span className="min-w-0">{log.note || `${log.old_status ?? 'created'} → ${log.new_status}`}</span>
+                <span className="font-mono text-slate-600 shrink-0">{new Date(log.changed_at).toLocaleString()}</span>
               </div>
             ))}
           </div>
