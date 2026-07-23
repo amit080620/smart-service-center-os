@@ -167,3 +167,10 @@ export const recordSupplierPaymentSchema = z.object({
   method: z.enum(['cash', 'card', 'upi', 'bank_transfer', 'cheque'])
 });
 export type RecordSupplierPaymentInput = z.infer<typeof recordSupplierPaymentSchema>;
+
+export const completeJobSchema = z.object({
+  discountType: z.enum(['amount', 'percentage']).optional().default('amount'),
+  discountValue: z.number().min(0, 'Discount cannot be negative.').optional().default(0),
+  gstAmount: z.number().min(0, 'GST cannot be negative.').optional().default(0)
+});
+export type CompleteJobInput = z.infer<typeof completeJobSchema>;

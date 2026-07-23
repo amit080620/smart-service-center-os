@@ -88,6 +88,11 @@ export default function JobCardDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  // Manual discount + GST, entered at completion time — both default to
+  // 0 (no discount, no tax) unless the person filling this in adds them.
+  const [discountType, setDiscountType] = useState<'amount' | 'percentage'>('amount');
+  const [discountValue, setDiscountValue] = useState('0');
+  const [gstAmount, setGstAmount] = useState('0');
 
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [showPartForm, setShowPartForm] = useState(false);
@@ -146,7 +151,15 @@ export default function JobCardDetailPage() {
   async function handleCompleteJob() {
     setStatusUpdating(true);
     setError(null);
-    const res = await fetch(`/api/job-cards/${jobId}/complete`, { method: 'POST' });
+    const res = await fetch(`/api/job-cards/${jobId}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        discountType,
+        discountValue: Number(discountValue) || 0,
+        gstAmount: Number(gstAmount) || 0
+      })
+    });
     const data = await res.json();
     if (!res.ok) {
       setError(data.error?.message ?? 'Could not complete this job.');
@@ -298,9 +311,59 @@ export default function JobCardDetailPage() {
 
         {/* Status progression */}
         {canProgressStatus && job.status === 'approved' && (
-          <div className="bg-emerald-950/30 border border-emerald-900/50 rounded-2xl p-5 flex items-center justify-between flex-wrap gap-3">
+          <div className="bg-emerald-950/30 border border-emerald-900/50 rounded-2xl p-5 space-y-4">
             <div className="text-sm text-emerald-200">
-              This job is approved and ready to be completed — this will generate the GST invoice.
+              This job is approved and ready to be completed — fill in discount/GST if needed (both default to 0),
+              then generate the invoice.
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Discount</label>
+                <div className="flex gap-1.5">
+                  <input
+                    type="number"
+                    value={discountValue}
+                    onChange={(e) => setDiscountValue(e.target.value)}
+                    min="0"
+                    disabled={statusUpdating}
+                    className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
+                  />
+                  <select
+                    value={discountType}
+                    onChange={(e) => setDiscountType(e.target.value as 'amount' | 'percentage')}
+                    disabled={statusUpdating}
+                    className="bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-2 text-sm outline-none disabled:opacity-50"
+                  >
+                    <option value="amount">₹</option>
+                    <option value="percentage">%</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">GST (₹)</label>
+                <input
+                  type="number"
+                  value={gstAmount}
+                  onChange={(e) => setGstAmount(e.target.value)}
+                  min="0"
+                  disabled={statusUpdating}
+                  placeholder="0"
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Invoice Total</label>
+                <div className="bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-sm font-mono text-amber-500 font-semibold">
+                  ₹
+                  {(
+                    job.estimated_cost -
+                    (discountType === 'percentage'
+                      ? Math.round(job.estimated_cost * ((Number(discountValue) || 0) / 100))
+                      : Number(discountValue) || 0) +
+                    (Number(gstAmount) || 0)
+                  ).toLocaleString('en-IN')}
+                </div>
+              </div>
             </div>
             <button
               onClick={handleCompleteJob}

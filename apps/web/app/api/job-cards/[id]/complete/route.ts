@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionContext } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
+import { completeJobSchema } from '@smartbizos/validation';
 
-export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSessionContext();
   if (!session) {
     return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Not signed in.' } }, { status: 401 });
@@ -48,13 +49,28 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     (jobServices ?? []).reduce((sum, s) => sum + s.qty * s.unit_cost, 0) +
     (jobParts ?? []).reduce((sum, p) => sum + p.qty * p.unit_cost, 0);
 
-  // GST rates come from the organization's own settings (set at signup,
-  // editable later in org settings) — never hardcoded, since different
-  // orgs may have different applicable rates.
-  const cgstRate = Number(session.org.settings.cgst_rate ?? 9);
-  const sgstRate = Number(session.org.settings.sgst_rate ?? 9);
-  const tax = Math.round(subtotal * ((cgstRate + sgstRate) / 100));
-  const total = subtotal + tax;
+  // Discount and GST are entered manually at completion time (default 0
+  // — no discount, no tax added unless the person filling this in
+  // chooses to), rather than auto-calculated from org settings. This
+  // matches how this business actually wants to bill: nothing assumed,
+  // everything explicit per invoice.
+  const body = await req.json().catch(() => ({}));
+  const parsed = completeJobSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: { code: 'BAD_REQUEST', message: parsed.error.issues[0]?.message ?? 'Invalid input.' } },
+      { status: 400 }
+    );
+  }
+
+  const discountAmount =
+    parsed.data.discountType === 'percentage' ? Math.round(subtotal * (parsed.data.discountValue / 100)) : parsed.data.discountValue;
+  if (discountAmount > subtotal) {
+    return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'Discount cannot exceed the subtotal.' } }, { status: 400 });
+  }
+
+  const tax = parsed.data.gstAmount;
+  const total = subtotal - discountAmount + tax;
 
   // Sequential invoice number scoped to this org + current year. Uses the
   // max existing sequence number (not array length) so a voided invoice
@@ -79,11 +95,13 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       job_id: jobId,
       invoice_number: invoiceNumber,
       subtotal,
+      discount: discountAmount,
+      tax_type: 'manual',
       tax,
       total,
       amount_paid: 0,
       balance_due: total,
-      status: 'sent',
+      status: total <= 0 ? 'paid' : 'sent',
       due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
     })
     .select()
