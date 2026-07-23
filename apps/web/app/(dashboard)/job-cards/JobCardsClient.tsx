@@ -67,8 +67,13 @@ export default function JobCardsClient({
 }) {
   const router = useRouter();
   const jobs = initialJobs;
-  const customers = initialCustomers;
-  const vehicles = initialVehicles;
+  // Local state (not just `const customers = initialCustomers`) — needed
+  // so a customer/vehicle created inline via the quick-add form appears
+  // immediately in the picker without waiting for a full page refresh.
+  const [extraCustomers, setExtraCustomers] = useState<Customer[]>([]);
+  const [extraVehicles, setExtraVehicles] = useState<Vehicle[]>([]);
+  const customers = [...initialCustomers, ...extraCustomers];
+  const vehicles = [...initialVehicles, ...extraVehicles];
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +83,70 @@ export default function JobCardsClient({
   const [vehicleId, setVehicleId] = useState('');
   const [odometerIn, setOdometerIn] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Inline "quick add" — lets a brand new customer or vehicle be created
+  // without leaving this form, so a first-time visitor's job card can be
+  // created in one continuous flow instead of three separate page visits
+  // (Customers → Vehicles → Job Cards).
+  const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
+  const [quickCustomerName, setQuickCustomerName] = useState('');
+  const [quickCustomerPhone, setQuickCustomerPhone] = useState('');
+  const [quickCustomerSubmitting, setQuickCustomerSubmitting] = useState(false);
+
+  const [showQuickAddVehicle, setShowQuickAddVehicle] = useState(false);
+  const [quickPlateNumber, setQuickPlateNumber] = useState('');
+  const [quickMake, setQuickMake] = useState('');
+  const [quickModel, setQuickModel] = useState('');
+  const [quickVehicleSubmitting, setQuickVehicleSubmitting] = useState(false);
+
+  async function handleQuickAddCustomer(e: FormEvent) {
+    e.preventDefault();
+    setQuickCustomerSubmitting(true);
+    setError(null);
+    const [firstName, ...rest] = quickCustomerName.trim().split(' ');
+    const res = await fetch('/api/customers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firstName, lastName: rest.join(' '), phone: quickCustomerPhone })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error?.message ?? 'Could not add customer.');
+      setQuickCustomerSubmitting(false);
+      return;
+    }
+    setExtraCustomers((prev) => [...prev, data]);
+    setCustomerId(data.id);
+    setVehicleId('');
+    setQuickCustomerName('');
+    setQuickCustomerPhone('');
+    setShowQuickAddCustomer(false);
+    setQuickCustomerSubmitting(false);
+  }
+
+  async function handleQuickAddVehicle(e: FormEvent) {
+    e.preventDefault();
+    setQuickVehicleSubmitting(true);
+    setError(null);
+    const res = await fetch('/api/vehicles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customerId, plateNumber: quickPlateNumber, make: quickMake, model: quickModel })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error?.message ?? 'Could not add vehicle.');
+      setQuickVehicleSubmitting(false);
+      return;
+    }
+    setExtraVehicles((prev) => [...prev, data]);
+    setVehicleId(data.id);
+    setQuickPlateNumber('');
+    setQuickMake('');
+    setQuickModel('');
+    setShowQuickAddVehicle(false);
+    setQuickVehicleSubmitting(false);
+  }
 
   const vehiclesForCustomer = vehicles.filter((v) => v.customer_id === customerId);
 
@@ -177,7 +246,49 @@ export default function JobCardsClient({
                 getSearchText={(c) => `${c.first_name} ${c.last_name} ${c.phone}`}
                 placeholder="Search by name or mobile number..."
                 disabled={submitting}
+                onAddNew={(query) => {
+                  setQuickCustomerName(query);
+                  setShowQuickAddCustomer(true);
+                }}
+                addNewLabel="New customer"
               />
+              {showQuickAddCustomer && (
+                <div className="mt-2 bg-slate-950 border border-amber-900/50 rounded-xl p-3 space-y-2 animate-fadeIn">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      value={quickCustomerName}
+                      onChange={(e) => setQuickCustomerName(e.target.value)}
+                      placeholder="Full name"
+                      disabled={quickCustomerSubmitting}
+                      className="bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none disabled:opacity-50"
+                    />
+                    <input
+                      value={quickCustomerPhone}
+                      onChange={(e) => setQuickCustomerPhone(e.target.value)}
+                      placeholder="Mobile number"
+                      disabled={quickCustomerSubmitting}
+                      className="bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none disabled:opacity-50"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleQuickAddCustomer}
+                      disabled={quickCustomerSubmitting || !quickCustomerName.trim() || !quickCustomerPhone.trim()}
+                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-medium px-3 py-2 rounded-lg cursor-pointer disabled:opacity-50"
+                    >
+                      {quickCustomerSubmitting ? 'Saving...' : 'Save & Select'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowQuickAddCustomer(false)}
+                      className="text-xs text-slate-500 hover:text-slate-300 px-3 py-2 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Vehicle</label>
@@ -190,15 +301,59 @@ export default function JobCardsClient({
                 getSearchText={(v) => `${v.make} ${v.model} ${v.plate_number}`}
                 placeholder={customerId ? 'Search by vehicle number or model...' : 'Select a customer first'}
                 disabled={submitting || !customerId}
+                onAddNew={
+                  customerId
+                    ? (query) => {
+                        setQuickPlateNumber(query);
+                        setShowQuickAddVehicle(true);
+                      }
+                    : undefined
+                }
+                addNewLabel="New vehicle"
               />
-              {customerId && vehiclesForCustomer.length === 0 && (
-                <p className="text-xs text-amber-400 mt-1.5">
-                  This customer has no vehicles on file —{' '}
-                  <a href="/vehicles" className="underline">
-                    add one first
-                  </a>
-                  .
-                </p>
+              {showQuickAddVehicle && (
+                <div className="mt-2 bg-slate-950 border border-amber-900/50 rounded-xl p-3 space-y-2 animate-fadeIn">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <input
+                      value={quickPlateNumber}
+                      onChange={(e) => setQuickPlateNumber(e.target.value)}
+                      placeholder="Plate number"
+                      disabled={quickVehicleSubmitting}
+                      className="bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none disabled:opacity-50"
+                    />
+                    <input
+                      value={quickMake}
+                      onChange={(e) => setQuickMake(e.target.value)}
+                      placeholder="Make"
+                      disabled={quickVehicleSubmitting}
+                      className="bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none disabled:opacity-50"
+                    />
+                    <input
+                      value={quickModel}
+                      onChange={(e) => setQuickModel(e.target.value)}
+                      placeholder="Model"
+                      disabled={quickVehicleSubmitting}
+                      className="bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none disabled:opacity-50"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleQuickAddVehicle}
+                      disabled={quickVehicleSubmitting || !quickPlateNumber.trim() || !quickMake.trim() || !quickModel.trim()}
+                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-medium px-3 py-2 rounded-lg cursor-pointer disabled:opacity-50"
+                    >
+                      {quickVehicleSubmitting ? 'Saving...' : 'Save & Select'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowQuickAddVehicle(false)}
+                      className="text-xs text-slate-500 hover:text-slate-300 px-3 py-2 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
             <div>
