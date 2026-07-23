@@ -15,6 +15,7 @@ import {
   BarChart3,
   UserPlus,
   Settings,
+  Truck,
   MoreHorizontal,
   X,
   LogOut
@@ -34,6 +35,7 @@ const MORE_ITEMS = [
   { href: '/services', label: 'Services', icon: Wrench },
   { href: '/parts', label: 'Parts', icon: Package },
   { href: '/inventory', label: 'Inventory', icon: Boxes },
+  { href: '/suppliers', label: 'Suppliers', icon: Truck },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/employees', label: 'Employees', icon: UserPlus },
   { href: '/settings', label: 'Settings', icon: Settings }

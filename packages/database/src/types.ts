@@ -227,6 +227,43 @@ export interface InventoryTransaction {
   created_at: string;
 }
 
+export interface Supplier {
+  id: string;
+  org_id: string;
+  name: string;
+  contact_phone: string;
+  contact_email: string;
+  address: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SupplierBill {
+  id: string;
+  org_id: string;
+  supplier_id: string;
+  bill_number: string;
+  amount: number;
+  amount_paid: number;
+  balance_due: number;
+  status: string;
+  bill_date: string;
+  notes: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SupplierPayment {
+  id: string;
+  bill_id: string;
+  amount: number;
+  method: string;
+  paid_at: string;
+  recorded_by: string;
+}
+
 export interface SessionContext {
   employee: Employee;
   org: Organization;

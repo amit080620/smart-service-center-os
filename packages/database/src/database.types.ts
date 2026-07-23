@@ -628,6 +628,110 @@ export interface Database {
           }
         ];
       };
+      suppliers: {
+        Row: {
+          id: string;
+          org_id: string;
+          name: string;
+          contact_phone: string;
+          contact_email: string;
+          address: string;
+          notes: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          name: string;
+          contact_phone?: string;
+          contact_email?: string;
+          address?: string;
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['suppliers']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'suppliers_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      supplier_bills: {
+        Row: {
+          id: string;
+          org_id: string;
+          supplier_id: string;
+          bill_number: string;
+          amount: number;
+          amount_paid: number;
+          balance_due: number;
+          status: string;
+          bill_date: string;
+          notes: string;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          supplier_id: string;
+          bill_number?: string;
+          amount: number;
+          amount_paid?: number;
+          balance_due: number;
+          status?: string;
+          bill_date?: string;
+          notes?: string;
+          created_by: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['supplier_bills']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'supplier_bills_supplier_id_fkey';
+            columns: ['supplier_id'];
+            isOneToOne: false;
+            referencedRelation: 'suppliers';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      supplier_payments: {
+        Row: {
+          id: string;
+          bill_id: string;
+          amount: number;
+          method: string;
+          paid_at: string;
+          recorded_by: string;
+        };
+        Insert: {
+          id?: string;
+          bill_id: string;
+          amount: number;
+          method: string;
+          paid_at?: string;
+          recorded_by: string;
+        };
+        Update: Partial<Database['public']['Tables']['supplier_payments']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'supplier_payments_bill_id_fkey';
+            columns: ['bill_id'];
+            isOneToOne: false;
+            referencedRelation: 'supplier_bills';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

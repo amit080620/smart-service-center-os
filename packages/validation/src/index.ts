@@ -143,3 +143,27 @@ export const updateEmployeeSchema = z.object({
   status: z.enum(['active', 'inactive']).optional()
 });
 export type UpdateEmployeeInput = z.infer<typeof updateEmployeeSchema>;
+
+export const supplierSchema = z.object({
+  name: z.string().trim().min(1, 'Supplier name is required.'),
+  contactPhone: z.string().trim().optional().default(''),
+  contactEmail: z.string().trim().toLowerCase().email().optional().or(z.literal('')),
+  address: z.string().trim().optional().default(''),
+  notes: z.string().trim().optional().default('')
+});
+export type SupplierInput = z.infer<typeof supplierSchema>;
+
+export const supplierBillSchema = z.object({
+  supplierId: z.string().uuid('Select a valid supplier.'),
+  billNumber: z.string().trim().optional().default(''),
+  amount: z.number().min(0.01, 'Amount must be greater than zero.'),
+  billDate: z.string().optional(),
+  notes: z.string().trim().optional().default('')
+});
+export type SupplierBillInput = z.infer<typeof supplierBillSchema>;
+
+export const recordSupplierPaymentSchema = z.object({
+  amount: z.number().min(0.01, 'Amount must be greater than zero.'),
+  method: z.enum(['cash', 'card', 'upi', 'bank_transfer', 'cheque'])
+});
+export type RecordSupplierPaymentInput = z.infer<typeof recordSupplierPaymentSchema>;
