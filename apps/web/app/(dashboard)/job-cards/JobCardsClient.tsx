@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ClipboardList, Plus, Gauge, Search } from 'lucide-react';
+import SearchableSelect from './SearchableSelect';
 
 interface JobCard {
   id: string;
@@ -20,6 +21,7 @@ interface Customer {
   id: string;
   first_name: string;
   last_name: string;
+  phone: string;
 }
 
 interface Vehicle {
@@ -163,40 +165,32 @@ export default function JobCardsClient({
             )}
             <div>
               <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Customer</label>
-              <select
+              <SearchableSelect
+                items={customers}
                 value={customerId}
-                onChange={(e) => {
-                  setCustomerId(e.target.value);
+                onChange={(id) => {
+                  setCustomerId(id);
                   setVehicleId('');
                 }}
-                required
+                getLabel={(c) => `${c.first_name} ${c.last_name}`}
+                getSubLabel={(c) => c.phone}
+                getSearchText={(c) => `${c.first_name} ${c.last_name} ${c.phone}`}
+                placeholder="Search by name or mobile number..."
                 disabled={submitting}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
-              >
-                <option value="">Select a customer...</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.first_name} {c.last_name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div>
               <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Vehicle</label>
-              <select
+              <SearchableSelect
+                items={vehiclesForCustomer}
                 value={vehicleId}
-                onChange={(e) => setVehicleId(e.target.value)}
-                required
+                onChange={(id) => setVehicleId(id)}
+                getLabel={(v) => `${v.make} ${v.model}`}
+                getSubLabel={(v) => v.plate_number}
+                getSearchText={(v) => `${v.make} ${v.model} ${v.plate_number}`}
+                placeholder={customerId ? 'Search by vehicle number or model...' : 'Select a customer first'}
                 disabled={submitting || !customerId}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
-              >
-                <option value="">{customerId ? 'Select a vehicle...' : 'Select a customer first'}</option>
-                {vehiclesForCustomer.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.make} {v.model} — {v.plate_number}
-                  </option>
-                ))}
-              </select>
+              />
               {customerId && vehiclesForCustomer.length === 0 && (
                 <p className="text-xs text-amber-400 mt-1.5">
                   This customer has no vehicles on file —{' '}

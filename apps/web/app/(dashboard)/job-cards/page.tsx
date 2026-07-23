@@ -19,7 +19,7 @@ export default async function JobCardsPage() {
       .order('created_at', { ascending: false }),
     admin
       .from('customers')
-      .select('id, first_name, last_name')
+      .select('id, first_name, last_name, phone')
       .eq('org_id', session.employee.org_id)
       .is('deleted_at', null),
     admin
