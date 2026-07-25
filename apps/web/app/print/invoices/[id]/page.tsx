@@ -38,6 +38,25 @@ export default async function InvoicePrintPage({
   }
 
   const { data: job } = await admin.from('job_cards').select('*').eq('id', invoice.job_id).maybeSingle();
+  const { data: payments } = await admin.from('payments').select('*').eq('invoice_id', id).order('paid_at', { ascending: true });
+
+  const METHOD_LABELS: Record<string, string> = {
+    cash: 'Cash',
+    card: 'Card',
+    upi: 'UPI',
+    bank_transfer: 'Bank Transfer',
+    cheque: 'Cheque'
+  };
+  // Summarize by method — e.g. "Cash ₹300 + UPI ₹550" when a bill was
+  // split across more than one payment method, which happens often
+  // enough at a service counter to be worth showing clearly.
+  const paymentsByMethod = new Map<string, number>();
+  for (const p of payments ?? []) {
+    paymentsByMethod.set(p.method, (paymentsByMethod.get(p.method) ?? 0) + p.amount);
+  }
+  const paymentModeSummary = [...paymentsByMethod.entries()]
+    .map(([method, amount]) => `${METHOD_LABELS[method] ?? method} \u20b9${amount.toLocaleString('en-IN')}`)
+    .join(' + ');
 
   let customer = null;
   let vehicle = null;
@@ -151,6 +170,7 @@ export default async function InvoicePrintPage({
               <span>{invoice.amount_paid.toFixed(2)}</span>
             </div>
           )}
+          {paymentModeSummary && <div>Mode: {paymentModeSummary}</div>}
           {invoice.balance_due > 0 && (
             <div className="flex justify-between font-bold">
               <span>BALANCE DUE</span>
@@ -272,6 +292,12 @@ export default async function InvoicePrintPage({
               <div className="flex justify-between text-gray-700">
                 <span>Amount Paid</span>
                 <span>₹{invoice.amount_paid.toLocaleString('en-IN')}</span>
+              </div>
+            )}
+            {paymentModeSummary && (
+              <div className="flex justify-between text-gray-600 text-xs">
+                <span>Payment Mode</span>
+                <span>{paymentModeSummary}</span>
               </div>
             )}
             {invoice.balance_due > 0 && (

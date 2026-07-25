@@ -98,6 +98,8 @@ export default function JobCardDetailPage() {
   const [discountValue, setDiscountValue] = useState('0');
   const [gstAmount, setGstAmount] = useState('0');
   const [gstType, setGstType] = useState<'amount' | 'percentage'>('amount');
+  const [nextServiceMonths, setNextServiceMonths] = useState('');
+  const [nextServiceKm, setNextServiceKm] = useState('');
 
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [showPartForm, setShowPartForm] = useState(false);
@@ -163,7 +165,9 @@ export default function JobCardDetailPage() {
         discountType,
         discountValue: Number(discountValue) || 0,
         gstType,
-        gstAmount: Number(gstAmount) || 0
+        gstAmount: Number(gstAmount) || 0,
+        ...(nextServiceMonths && { nextServiceMonths: Number(nextServiceMonths) }),
+        ...(nextServiceKm && { nextServiceKm: Number(nextServiceKm) })
       })
     });
     const data = await res.json();
@@ -383,6 +387,33 @@ export default function JobCardDetailPage() {
                     return (afterDiscount + gst).toLocaleString('en-IN');
                   })()}
                 </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-emerald-900/30">
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Next Service In (months, optional)</label>
+                <input
+                  type="number"
+                  value={nextServiceMonths}
+                  onChange={(e) => setNextServiceMonths(e.target.value)}
+                  min="0"
+                  placeholder="e.g. 6"
+                  disabled={statusUpdating}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Next Service At (+km, optional)</label>
+                <input
+                  type="number"
+                  value={nextServiceKm}
+                  onChange={(e) => setNextServiceKm(e.target.value)}
+                  min="0"
+                  placeholder="e.g. 5000"
+                  disabled={statusUpdating}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
+                />
               </div>
             </div>
             <button

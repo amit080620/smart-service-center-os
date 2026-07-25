@@ -182,6 +182,8 @@ export const completeJobSchema = z.object({
   discountType: z.enum(['amount', 'percentage']).optional().default('amount'),
   discountValue: z.number().min(0, 'Discount cannot be negative.').optional().default(0),
   gstType: z.enum(['amount', 'percentage']).optional().default('amount'),
-  gstAmount: z.number().min(0, 'GST cannot be negative.').optional().default(0)
+  gstAmount: z.number().min(0, 'GST cannot be negative.').optional().default(0),
+  nextServiceMonths: z.number().int().min(0).optional(),
+  nextServiceKm: z.number().int().min(0).optional()
 });
 export type CompleteJobInput = z.infer<typeof completeJobSchema>;

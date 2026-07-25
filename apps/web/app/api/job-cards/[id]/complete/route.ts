@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionContext } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
 import { completeJobSchema } from '@smartbizos/validation';
+import type { Database } from '@smartbizos/database';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSessionContext();
@@ -171,6 +172,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       });
     }
   }
+
+  // Update the vehicle's service history — last_service_odometer always
+  // (from this job's odometer_in reading), and next_service_date/
+  // next_service_odometer only if the person filling in completion
+  // actually set a reminder (both are optional — no reminder is set by
+  // default, matching the "nothing assumed" approach used for discount
+  // and GST above).
+  const vehicleUpdate: Database['public']['Tables']['vehicles']['Update'] = {
+    last_service_odometer: job.odometer_in,
+    updated_at: new Date().toISOString()
+  };
+  if (parsed.data.nextServiceMonths !== undefined) {
+    const nextDate = new Date();
+    nextDate.setMonth(nextDate.getMonth() + parsed.data.nextServiceMonths);
+    vehicleUpdate.next_service_date = nextDate.toISOString().slice(0, 10);
+  }
+  if (parsed.data.nextServiceKm !== undefined) {
+    vehicleUpdate.next_service_odometer = job.odometer_in + parsed.data.nextServiceKm;
+  }
+  await admin.from('vehicles').update(vehicleUpdate).eq('id', job.vehicle_id);
 
   return NextResponse.json({ success: true, invoice, job: updatedJob });
 }

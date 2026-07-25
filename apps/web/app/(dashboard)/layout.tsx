@@ -16,6 +16,8 @@ import {
   UserPlus,
   Settings,
   Truck,
+  CreditCard,
+  Gauge,
   MoreHorizontal,
   X,
   LogOut
@@ -32,12 +34,14 @@ const NAV_ITEMS = [
 
 const MORE_ITEMS = [
   { href: '/vehicles', label: 'Vehicles', icon: Car },
+  { href: '/vehicle-status', label: 'Vehicle Status', icon: Gauge },
   { href: '/services', label: 'Services', icon: Wrench },
   { href: '/parts', label: 'Parts', icon: Package },
   { href: '/inventory', label: 'Inventory', icon: Boxes },
   { href: '/suppliers', label: 'Suppliers', icon: Truck },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/employees', label: 'Employees', icon: UserPlus },
+  { href: '/platform-billing', label: 'Platform Billing', icon: CreditCard },
   { href: '/settings', label: 'Settings', icon: Settings }
 ];
 
