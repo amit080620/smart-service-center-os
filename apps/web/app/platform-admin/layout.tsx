@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import InstallPrompt from '@/components/InstallPrompt';
+import PlatformAdminTopBar from './PlatformAdminTopBar';
 
 // Overrides the manifest for every page under /platform-admin — a
 // distinct name, icon, and start_url ("SC Admin", red shield icon)
@@ -19,6 +20,7 @@ export default function PlatformAdminLayout({ children }: { children: React.Reac
   return (
     <>
       <InstallPrompt />
+      <PlatformAdminTopBar />
       {children}
     </>
   );
