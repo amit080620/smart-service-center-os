@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionContext } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
-import { canEditCompletedJob, canApproveJobCard } from '@smartbizos/permissions';
+import { canEditCompletedJob } from '@smartbizos/permissions';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSessionContext();
@@ -72,7 +72,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     parts: populatedParts,
     statusLogs: statusLogs ?? [],
     technicians: technicians ?? [],
-    canEditCompleted: canEditCompletedJob(session.employee.role),
-    canOverrideStatus: canApproveJobCard(session.employee.role)
+    canEditCompleted: canEditCompletedJob(session.employee.role)
   });
 }

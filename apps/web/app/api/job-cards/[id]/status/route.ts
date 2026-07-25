@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionContext } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
 import { updateJobStatusSchema } from '@smartbizos/validation';
-import { canApproveJobCard } from '@smartbizos/permissions';
-import { JOB_STATUS_FLOW } from '@smartbizos/constants';
+import { canApproveJobCard, canEditCompletedJob } from '@smartbizos/permissions';
 import type { Database } from '@smartbizos/database';
 
 type JobCardUpdate = Database['public']['Tables']['job_cards']['Update'];
@@ -47,16 +46,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     );
   }
 
-  // Any status change that ISN'T the ordinary "move to next stage" step
-  // (going backward, skipping stages, re-opening after a later stage) is
-  // treated as a manual override and restricted to management roles —
-  // regular staff can still always advance a job normally.
-  const oldIndex = JOB_STATUS_FLOW.indexOf(job.status as (typeof JOB_STATUS_FLOW)[number]);
-  const newIndex = JOB_STATUS_FLOW.indexOf(parsed.data.status as (typeof JOB_STATUS_FLOW)[number]);
-  const isOrdinaryNextStep = oldIndex >= 0 && newIndex === oldIndex + 1;
-  if (!isOrdinaryNextStep && !canApproveJobCard(session.employee.role)) {
+  // Any employee can move a job to any status freely WHILE it's still
+  // open (no invoice generated yet) — forward, backward, skip stages,
+  // whatever the actual workflow needs day to day. Once a job has been
+  // completed and billed, further status changes (e.g. marking it
+  // delivered, or reopening it) are restricted to management roles —
+  // same rule already used for editing a completed job's line items.
+  if (job.status === 'completed' && !canEditCompletedJob(session.employee.role)) {
     return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only branch managers and org owners can change status out of normal sequence.' } },
+      { error: { code: 'FORBIDDEN', message: 'Only managers/owners can change the status of a completed, invoiced job.' } },
       { status: 403 }
     );
   }

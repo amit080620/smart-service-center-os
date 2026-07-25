@@ -82,7 +82,6 @@ export default function JobCardDetailPage() {
   const [services, setServices] = useState<LineService[]>([]);
   const [parts, setParts] = useState<LinePart[]>([]);
   const [canEditCompleted, setCanEditCompleted] = useState(false);
-  const [canOverrideStatus, setCanOverrideStatus] = useState(false);
   const [overrideStatusValue, setOverrideStatusValue] = useState('');
   const [showOverride, setShowOverride] = useState(false);
   const [statusLogs, setStatusLogs] = useState<StatusLog[]>([]);
@@ -121,7 +120,6 @@ export default function JobCardDetailPage() {
       setStatusLogs(data.statusLogs);
       setTechnicians(data.technicians ?? []);
       setCanEditCompleted(data.canEditCompleted ?? false);
-      setCanOverrideStatus(data.canOverrideStatus ?? false);
     }
     if (servicesRes.ok) setServiceCatalog(await servicesRes.json());
     if (partsRes.ok) setPartCatalog(await partsRes.json());
@@ -414,7 +412,7 @@ export default function JobCardDetailPage() {
         {/* Admin override — jump to any status, not just the next one in
             sequence. Only management roles see/can use this; the server
             enforces the same rule independently. */}
-        {canOverrideStatus && !['delivered', 'cancelled'].includes(job.status) && (
+        {(job.status !== 'completed' || canEditCompleted) && !['delivered', 'cancelled'].includes(job.status) && (
           <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-4">
             <button
               onClick={() => setShowOverride(!showOverride)}
