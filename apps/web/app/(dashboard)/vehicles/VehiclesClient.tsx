@@ -233,7 +233,7 @@ export default function VehiclesClient({ initialVehicles, initialCustomers }: { 
           ) : (
             <div className="divide-y divide-slate-800/50">
               {filteredVehicles.map((v) => (
-                <div key={v.id} className="p-4 hover:bg-slate-900/40 transition-all">
+                <a key={v.id} href={`/vehicles/${v.id}`} className="p-4 block hover:bg-slate-900/40 transition-all">
                   <div className="font-semibold text-slate-200 truncate">
                     {v.make} {v.model} <span className="text-slate-500 font-normal">({v.year})</span>
                   </div>
@@ -246,7 +246,7 @@ export default function VehiclesClient({ initialVehicles, initialCustomers }: { 
                       <Gauge className="w-3 h-3" /> {v.odometer_km.toLocaleString()} km
                     </span>
                   </div>
-                </div>
+                </a>
               ))}
             </div>
           )}

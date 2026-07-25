@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Printer, IndianRupee, ClipboardList, Boxes, Receipt } from 'lucide-react';
+import { BarChart3, Printer, IndianRupee, ClipboardList, Boxes, Receipt, UserCheck } from 'lucide-react';
 
 interface ReportData {
   fromDate: string;
@@ -25,6 +25,14 @@ interface ReportData {
   jobsCreated: Array<{ id: string; job_number: string; status: string; label: string; created_at: string }>;
   jobsCompleted: Array<{ id: string; job_number: string; final_cost: number; label: string; completed_at: string | null }>;
   inventoryTx: Array<{ id: string; type: string; qty: number; part_name: string; sku: string; notes: string; created_at: string }>;
+  workerStats: Array<{
+    id: string;
+    name: string;
+    jobCount: number;
+    revenue: number;
+    jobs: Array<{ id: string; job_number: string; label: string; final_cost: number }>;
+  }>;
+  unassignedCompletedCount: number;
 }
 
 const METHOD_LABELS: Record<string, string> = {
@@ -232,6 +240,38 @@ export default function ReportsClient({ report }: { report: ReportData }) {
                   </div>
                 </div>
               ))}
+            </>
+          )}
+        </ReportSection>
+
+        {/* Worker-wise performance */}
+        <ReportSection
+          icon={<UserCheck className="w-4 h-4 text-amber-500 print:hidden" />}
+          title={`Worker-wise Performance (${report.workerStats.filter((w) => w.jobCount > 0).length} active)`}
+        >
+          {report.workerStats.filter((w) => w.jobCount > 0).length === 0 && report.unassignedCompletedCount === 0 ? (
+            <EmptyRow text="No completed jobs by any technician in this period." />
+          ) : (
+            <>
+              {report.workerStats
+                .filter((w) => w.jobCount > 0)
+                .sort((a, b) => b.revenue - a.revenue)
+                .map((w) => (
+                  <div key={w.id} className="p-3 px-4 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-slate-200 print:text-black font-semibold">{w.name}</span>
+                      <span className="font-mono text-amber-500 print:text-black">₹{w.revenue.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="text-xs text-slate-500 print:text-gray-600 mt-0.5">
+                      {w.jobCount} vehicle{w.jobCount === 1 ? '' : 's'} — {w.jobs.map((j) => j.job_number).join(', ')}
+                    </div>
+                  </div>
+                ))}
+              {report.unassignedCompletedCount > 0 && (
+                <div className="p-3 px-4 text-xs text-slate-500 print:text-gray-600">
+                  {report.unassignedCompletedCount} completed job{report.unassignedCompletedCount === 1 ? '' : 's'} had no technician assigned.
+                </div>
+              )}
             </>
           )}
         </ReportSection>

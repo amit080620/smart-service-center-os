@@ -82,13 +82,14 @@ export default async function ReportsPage({
   const allJobs = [...(jobsCreated ?? []), ...(jobsCompleted ?? [])];
   const customerIds = [...new Set(allJobs.map((j) => j.customer_id))];
   const vehicleIds = [...new Set(allJobs.map((j) => j.vehicle_id))];
-  const [{ data: customers }, { data: vehicles }] = await Promise.all([
+  const [{ data: customers }, { data: vehicles }, { data: technicians }] = await Promise.all([
     customerIds.length
       ? admin.from('customers').select('id, first_name, last_name').in('id', customerIds)
       : Promise.resolve({ data: [] }),
     vehicleIds.length
       ? admin.from('vehicles').select('id, plate_number, make, model').in('id', vehicleIds)
-      : Promise.resolve({ data: [] })
+      : Promise.resolve({ data: [] }),
+    admin.from('employees').select('id, full_name').eq('org_id', orgId).eq('role', 'technician')
   ]);
 
   function jobLabel(j: { customer_id: string; vehicle_id: string }) {
@@ -96,6 +97,21 @@ export default async function ReportsPage({
     const v = vehicles?.find((x) => x.id === j.vehicle_id);
     return `${c ? `${c.first_name} ${c.last_name}`.trim() : 'Unknown'} · ${v ? `${v.make} ${v.model} (${v.plate_number})` : ''}`;
   }
+
+  // Worker-wise breakdown — jobs completed and revenue generated per
+  // technician, within the selected date range. Unassigned jobs are
+  // grouped separately rather than silently dropped.
+  const workerStats = (technicians ?? []).map((t) => {
+    const techJobs = (jobsCompleted ?? []).filter((j) => j.assigned_technician_id === t.id);
+    return {
+      id: t.id,
+      name: t.full_name,
+      jobCount: techJobs.length,
+      revenue: techJobs.reduce((sum, j) => sum + j.final_cost, 0),
+      jobs: techJobs.map((j) => ({ id: j.id, job_number: j.job_number, label: jobLabel(j), final_cost: j.final_cost }))
+    };
+  });
+  const unassignedCompleted = (jobsCompleted ?? []).filter((j) => !j.assigned_technician_id);
 
   const report = {
     fromDate,
@@ -147,7 +163,9 @@ export default async function ReportsPage({
         notes: t.notes,
         created_at: t.created_at
       };
-    })
+    }),
+    workerStats,
+    unassignedCompletedCount: unassignedCompleted.length
   };
 
   return <ReportsClient report={report} />;
