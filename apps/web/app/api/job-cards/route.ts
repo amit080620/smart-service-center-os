@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
   // invoice whatever job cards they already have open (see the
   // line-item/status routes, which have no wallet check at all).
   const [{ data: wallet }, { data: settings }] = await Promise.all([
-    admin.from('org_wallets').select('balance').eq('org_id', session.employee.org_id).maybeSingle(),
+    admin.from('org_wallets').select('balance, custom_bike_price, custom_car_price').eq('org_id', session.employee.org_id).maybeSingle(),
     admin.from('platform_settings').select('*').limit(1).maybeSingle()
   ]);
   const currentBalance = wallet?.balance ?? 0;
@@ -159,7 +159,13 @@ export async function POST(req: NextRequest) {
   // real-time prepaid balance the shop can watch drain. A missing
   // wallet row (shouldn't normally happen — created at signup) is
   // treated as balance 0 rather than crashing job creation.
-  const jobPrice = vehicle.vehicle_type === 'bike' ? settings?.bike_job_price ?? 5 : settings?.car_job_price ?? 10;
+  // Per-org custom pricing (set from the Super Admin panel, e.g. for a
+  // negotiated deal) always wins over the global default rate — null
+  // means "no override, use the platform-wide price."
+  const jobPrice =
+    vehicle.vehicle_type === 'bike'
+      ? wallet?.custom_bike_price ?? settings?.bike_job_price ?? 5
+      : wallet?.custom_car_price ?? settings?.car_job_price ?? 10;
   const newBalance = currentBalance - jobPrice;
 
   if (wallet) {

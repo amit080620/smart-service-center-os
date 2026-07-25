@@ -286,12 +286,16 @@ export interface Database {
         Row: {
           org_id: string;
           balance: number;
+          custom_bike_price: number | null;
+          custom_car_price: number | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           org_id: string;
           balance?: number;
+          custom_bike_price?: number | null;
+          custom_car_price?: number | null;
           created_at?: string;
           updated_at?: string;
         };

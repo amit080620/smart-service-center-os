@@ -21,5 +21,13 @@ export default async function OrgDetailPage({ params }: { params: Promise<{ id: 
     notFound();
   }
 
-  return <OrgDetailClient org={org} balance={wallet?.balance ?? 0} transactions={transactions ?? []} />;
+  return (
+    <OrgDetailClient
+      org={org}
+      balance={wallet?.balance ?? 0}
+      customBikePrice={wallet?.custom_bike_price ?? null}
+      customCarPrice={wallet?.custom_car_price ?? null}
+      transactions={transactions ?? []}
+    />
+  );
 }

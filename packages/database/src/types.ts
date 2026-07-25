@@ -122,6 +122,8 @@ export interface PlatformSettings {
 export interface OrgWallet {
   org_id: string;
   balance: number;
+  custom_bike_price: number | null;
+  custom_car_price: number | null;
   created_at: string;
   updated_at: string;
 }

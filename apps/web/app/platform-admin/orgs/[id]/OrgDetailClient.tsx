@@ -27,7 +27,19 @@ const METHODS = [
   { value: 'other', label: 'Other' }
 ];
 
-export default function OrgDetailClient({ org, balance, transactions }: { org: Org; balance: number; transactions: Transaction[] }) {
+export default function OrgDetailClient({
+  org,
+  balance,
+  customBikePrice,
+  customCarPrice,
+  transactions
+}: {
+  org: Org;
+  balance: number;
+  customBikePrice: number | null;
+  customCarPrice: number | null;
+  transactions: Transaction[];
+}) {
   const router = useRouter();
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('cash');
@@ -35,6 +47,40 @@ export default function OrgDetailClient({ org, balance, transactions }: { org: O
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const [useCustomPricing, setUseCustomPricing] = useState(customBikePrice !== null || customCarPrice !== null);
+  const [bikePriceOverride, setBikePriceOverride] = useState(customBikePrice !== null ? String(customBikePrice) : '');
+  const [carPriceOverride, setCarPriceOverride] = useState(customCarPrice !== null ? String(customCarPrice) : '');
+  const [pricingSubmitting, setPricingSubmitting] = useState(false);
+  const [pricingError, setPricingError] = useState<string | null>(null);
+  const [pricingSuccess, setPricingSuccess] = useState(false);
+
+  async function handleSavePricing(e: FormEvent) {
+    e.preventDefault();
+    setPricingSubmitting(true);
+    setPricingError(null);
+    setPricingSuccess(false);
+
+    const res = await fetch(`/api/platform-admin/orgs/${org.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customBikePrice: useCustomPricing && bikePriceOverride ? Number(bikePriceOverride) : null,
+        customCarPrice: useCustomPricing && carPriceOverride ? Number(carPriceOverride) : null
+      })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setPricingError(data.error?.message ?? 'Could not save pricing.');
+      setPricingSubmitting(false);
+      return;
+    }
+
+    setPricingSuccess(true);
+    setPricingSubmitting(false);
+    router.refresh();
+  }
 
   async function handleRecharge(e: FormEvent) {
     e.preventDefault();
@@ -138,6 +184,62 @@ export default function OrgDetailClient({ org, balance, transactions }: { org: O
             className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2.5 rounded-xl text-sm cursor-pointer disabled:opacity-50"
           >
             {submitting ? 'Saving...' : 'Add Credit'}
+          </button>
+        </form>
+
+        <form onSubmit={handleSavePricing} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <h2 className="font-semibold text-sm">Custom Pricing for This Shop</h2>
+          <p className="text-xs text-slate-500">
+            Overrides the global rate for this shop only — e.g. a negotiated deal. Leave off to use the platform default.
+          </p>
+          {pricingError && <div className="bg-red-950/40 border border-red-900 text-red-200 text-xs rounded-xl p-3">{pricingError}</div>}
+          {pricingSuccess && <div className="bg-emerald-950/40 border border-emerald-900 text-emerald-200 text-xs rounded-xl p-3">Pricing saved.</div>}
+
+          <label className="flex items-center gap-2 cursor-pointer text-sm">
+            <input
+              type="checkbox"
+              checked={useCustomPricing}
+              onChange={(e) => setUseCustomPricing(e.target.checked)}
+              className="w-4 h-4 accent-amber-500"
+            />
+            Use custom pricing for this shop
+          </label>
+
+          {useCustomPricing && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fadeIn">
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Bike Job Price (₹)</label>
+                <input
+                  type="number"
+                  value={bikePriceOverride}
+                  onChange={(e) => setBikePriceOverride(e.target.value)}
+                  min="0"
+                  disabled={pricingSubmitting}
+                  placeholder="Uses platform default if blank"
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Car Job Price (₹)</label>
+                <input
+                  type="number"
+                  value={carPriceOverride}
+                  onChange={(e) => setCarPriceOverride(e.target.value)}
+                  min="0"
+                  disabled={pricingSubmitting}
+                  placeholder="Uses platform default if blank"
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
+                />
+              </div>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={pricingSubmitting}
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-4 py-2.5 rounded-xl text-sm cursor-pointer disabled:opacity-50"
+          >
+            {pricingSubmitting ? 'Saving...' : 'Save Pricing'}
           </button>
         </form>
 
