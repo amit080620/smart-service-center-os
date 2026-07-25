@@ -82,3 +82,18 @@ export async function getPlatformAdminContext(): Promise<{ id: string; email: st
 
   return { id: platformAdmin.id, email: platformAdmin.email, fullName: platformAdmin.full_name };
 }
+
+// Just checks "is anyone logged in at all" — used by platform-admin
+// pages to tell apart two very different situations: no session (send
+// to /login normally) vs a session that exists but isn't a platform
+// admin (show a clear "wrong account" message instead of silently
+// redirecting to /login, which the middleware would otherwise bounce
+// straight to /dashboard for whoever IS logged in — very confusing on
+// a device where the shop-owner account is already signed in).
+export async function hasAnySession(): Promise<boolean> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  return Boolean(user);
+}

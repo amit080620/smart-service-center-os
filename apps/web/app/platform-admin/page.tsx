@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
-import { getPlatformAdminContext } from '@smartbizos/auth';
+import { getPlatformAdminContext, hasAnySession } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
 import PlatformAdminClient from './PlatformAdminClient';
+import PlatformAdminAccessDenied from './PlatformAdminAccessDenied';
 
 // Cross-org Super Admin dashboard — completely separate from the normal
 // org-scoped (dashboard) route group and its role system. Access is
@@ -11,6 +12,14 @@ import PlatformAdminClient from './PlatformAdminClient';
 export default async function PlatformAdminPage() {
   const adminCtx = await getPlatformAdminContext();
   if (!adminCtx) {
+    // Distinguish "not logged in at all" (send to the normal login flow)
+    // from "logged in, but as the wrong account" (show a message with a
+    // real sign-out action — a bare redirect to /login here would just
+    // bounce back to /dashboard for whichever account IS signed in,
+    // via the middleware's already-authenticated rule).
+    if (await hasAnySession()) {
+      return <PlatformAdminAccessDenied />;
+    }
     redirect('/login');
   }
 

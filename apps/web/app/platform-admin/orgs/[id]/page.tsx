@@ -1,11 +1,15 @@
 import { redirect, notFound } from 'next/navigation';
-import { getPlatformAdminContext } from '@smartbizos/auth';
+import { getPlatformAdminContext, hasAnySession } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
 import OrgDetailClient from './OrgDetailClient';
+import PlatformAdminAccessDenied from '../../PlatformAdminAccessDenied';
 
 export default async function OrgDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const adminCtx = await getPlatformAdminContext();
   if (!adminCtx) {
+    if (await hasAnySession()) {
+      return <PlatformAdminAccessDenied />;
+    }
     redirect('/login');
   }
   const { id } = await params;

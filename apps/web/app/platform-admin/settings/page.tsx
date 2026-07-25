@@ -1,11 +1,15 @@
 import { redirect } from 'next/navigation';
-import { getPlatformAdminContext } from '@smartbizos/auth';
+import { getPlatformAdminContext, hasAnySession } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
 import SettingsClient from './SettingsClient';
+import PlatformAdminAccessDenied from '../PlatformAdminAccessDenied';
 
 export default async function PlatformAdminSettingsPage() {
   const adminCtx = await getPlatformAdminContext();
   if (!adminCtx) {
+    if (await hasAnySession()) {
+      return <PlatformAdminAccessDenied />;
+    }
     redirect('/login');
   }
 
