@@ -38,6 +38,7 @@ export const vehicleSchema = z.object({
   vin: z.string().trim().optional().default(''),
   make: z.string().trim().min(1, 'Make is required.'),
   model: z.string().trim().min(1, 'Model is required.'),
+  vehicleType: z.enum(['car', 'bike']).optional().default('car'),
   year: z.number().int().min(1980).max(2100).optional(),
   color: z.string().trim().optional().default(''),
   odometerKm: z.number().int().min(0).optional().default(0),

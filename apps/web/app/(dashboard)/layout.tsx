@@ -27,6 +27,7 @@ import { useRouter } from 'next/navigation';
 import AssignmentAlert from '@/components/AssignmentAlert';
 import InstallPrompt from '@/components/InstallPrompt';
 import OnboardingTour from '@/components/OnboardingTour';
+import WalletBanner from '@/components/WalletBanner';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
@@ -44,7 +45,7 @@ const MORE_ITEMS = [
   { href: '/suppliers', label: 'Suppliers', icon: Truck },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/employees', label: 'Employees', icon: UserPlus },
-  { href: '/platform-billing', label: 'Platform Billing', icon: CreditCard },
+  { href: '/platform-billing', label: 'Wallet', icon: CreditCard },
   { href: '/settings', label: 'Settings', icon: Settings }
 ];
 
@@ -69,6 +70,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <AssignmentAlert />
       <InstallPrompt />
       <OnboardingTour />
+      <WalletBanner />
       {/* Desktop top nav — hidden on mobile */}
       <nav className="hidden md:flex items-center justify-between px-6 py-3 border-b border-slate-800 bg-slate-950/95 backdrop-blur sticky top-0 z-40">
         <div className="flex items-center gap-1">

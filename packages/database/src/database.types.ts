@@ -192,6 +192,7 @@ export interface Database {
           vin: string;
           make: string;
           model: string;
+          vehicle_type: string;
           year: number;
           color: string;
           odometer_km: number;
@@ -211,6 +212,7 @@ export interface Database {
           vin?: string;
           make: string;
           model: string;
+          vehicle_type?: string;
           year?: number;
           color?: string;
           odometer_km?: number;
@@ -236,6 +238,104 @@ export interface Database {
             columns: ['customer_id'];
             isOneToOne: false;
             referencedRelation: 'customers';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      platform_admins: {
+        Row: {
+          id: string;
+          user_id: string;
+          email: string;
+          full_name: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          email: string;
+          full_name?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['platform_admins']['Insert']>;
+        Relationships: [];
+      };
+      platform_settings: {
+        Row: {
+          id: string;
+          bike_job_price: number;
+          car_job_price: number;
+          low_balance_threshold: number;
+          block_threshold: number;
+          support_phone: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          bike_job_price?: number;
+          car_job_price?: number;
+          low_balance_threshold?: number;
+          block_threshold?: number;
+          support_phone?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['platform_settings']['Insert']>;
+        Relationships: [];
+      };
+      org_wallets: {
+        Row: {
+          org_id: string;
+          balance: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          org_id: string;
+          balance?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['org_wallets']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'org_wallets_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: true;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      wallet_transactions: {
+        Row: {
+          id: string;
+          org_id: string;
+          type: string;
+          amount: number;
+          reason: string;
+          balance_after: number;
+          related_job_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          type: string;
+          amount: number;
+          reason?: string;
+          balance_after: number;
+          related_job_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['wallet_transactions']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'wallet_transactions_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
             referencedColumns: ['id'];
           }
         ];

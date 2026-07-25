@@ -42,7 +42,7 @@ export default function VehicleEditPanel({ vehicle }: { vehicle: VehicleEditData
     const res = await fetch(`/api/vehicles/${vehicle.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plateNumber, vin, make, model, year: Number(year), color })
+      body: JSON.stringify({ plateNumber, vin, make, model, vehicleType, year: Number(year), color })
     });
     const data = await res.json();
 

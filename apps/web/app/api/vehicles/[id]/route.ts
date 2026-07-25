@@ -58,6 +58,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       ...(parsed.data.plateNumber !== undefined && { plate_number: parsed.data.plateNumber }),
       ...(parsed.data.vin !== undefined && { vin: parsed.data.vin }),
       ...(parsed.data.make !== undefined && { make: parsed.data.make }),
+      ...(parsed.data.vehicleType !== undefined && { vehicle_type: parsed.data.vehicleType }),
       ...(parsed.data.model !== undefined && { model: parsed.data.model }),
       ...(parsed.data.year !== undefined && { year: parsed.data.year }),
       ...(parsed.data.color !== undefined && { color: parsed.data.color }),

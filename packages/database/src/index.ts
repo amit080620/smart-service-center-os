@@ -28,6 +28,10 @@ export type {
   SupplierPayment,
   PlatformUsageCharge,
   PlatformBill,
+  PlatformAdmin,
+  PlatformSettings,
+  OrgWallet,
+  WalletTransaction,
   SessionContext
 } from './types';
 export type { Database } from './database.types';

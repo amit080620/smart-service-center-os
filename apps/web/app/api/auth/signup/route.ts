@@ -127,6 +127,23 @@ export async function POST(req: NextRequest) {
       .single();
     if (ownerError || !owner) throw new Error(ownerError?.message ?? 'Failed to create employee record.');
 
+    // Every new org starts with a small free credit balance — lets them
+    // try the platform (a handful of job cards) before needing to pay
+    // anything. Failure here doesn't roll back the whole signup — a
+    // missing wallet just means "first job card creation will find no
+    // wallet row," which the job-card route handles by treating it as
+    // zero balance, not by crashing.
+    const { data: wallet } = await admin.from('org_wallets').insert({ org_id: org.id, balance: 100 }).select().single();
+    if (wallet) {
+      await admin.from('wallet_transactions').insert({
+        org_id: org.id,
+        type: 'credit',
+        amount: 100,
+        reason: 'Welcome credit — free trial balance',
+        balance_after: 100
+      });
+    }
+
     return NextResponse.json({ employee: owner, org, branch }, { status: 201 });
   } catch (err) {
     // Roll back the auth user so this email can be tried again cleanly.

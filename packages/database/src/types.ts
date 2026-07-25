@@ -88,6 +88,7 @@ export interface Vehicle {
   vin: string;
   make: string;
   model: string;
+  vehicle_type: string;
   year: number;
   color: string;
   odometer_km: number;
@@ -99,6 +100,44 @@ export interface Vehicle {
   updated_at: string;
   deleted_at: string | null;
 }
+
+export interface PlatformAdmin {
+  id: string;
+  user_id: string;
+  email: string;
+  full_name: string;
+  created_at: string;
+}
+
+export interface PlatformSettings {
+  id: string;
+  bike_job_price: number;
+  car_job_price: number;
+  low_balance_threshold: number;
+  block_threshold: number;
+  support_phone: string;
+  updated_at: string;
+}
+
+export interface OrgWallet {
+  org_id: string;
+  balance: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WalletTransaction {
+  id: string;
+  org_id: string;
+  type: string;
+  amount: number;
+  reason: string;
+  balance_after: number;
+  related_job_id: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
 
 export interface Service {
   id: string;

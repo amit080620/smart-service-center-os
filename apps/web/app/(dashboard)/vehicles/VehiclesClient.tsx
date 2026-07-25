@@ -72,6 +72,7 @@ export default function VehiclesClient({ initialVehicles, initialCustomers }: { 
         vin,
         make,
         model,
+        vehicleType,
         year: year ? Number(year) : undefined,
         color
       })

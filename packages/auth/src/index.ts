@@ -55,3 +55,30 @@ export async function getSessionContext(): Promise<SessionContext | null> {
 
   return { employee: employee as any, org: org as any, branch: branch as any };
 }
+
+// Separate from getSessionContext() on purpose — platform admin status
+// (Amit's "Super Admin" access across every org on the platform) has
+// nothing to do with being an employee of any particular org. Checked
+// against a dedicated platform_admins table keyed by the raw Supabase
+// Auth user id, so it works independently of — and is far more
+// restricted than — the normal org-scoped employee/role system.
+export async function getPlatformAdminContext(): Promise<{ id: string; email: string; fullName: string } | null> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return null;
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data: platformAdmin } = await admin.from('platform_admins').select('*').eq('user_id', user.id).maybeSingle();
+
+  if (!platformAdmin) {
+    return null;
+  }
+
+  return { id: platformAdmin.id, email: platformAdmin.email, fullName: platformAdmin.full_name };
+}

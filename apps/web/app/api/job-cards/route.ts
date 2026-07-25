@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
   const { data: vehicle } = await admin
     .from('vehicles')
-    .select('id')
+    .select('id, vehicle_type')
     .eq('id', parsed.data.vehicleId)
     .eq('org_id', session.employee.org_id)
     .is('deleted_at', null)
@@ -86,6 +86,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: { code: 'NOT_FOUND', message: 'Customer or vehicle not found in your organization.' } },
       { status: 404 }
+    );
+  }
+
+  // Wallet check — BEFORE creating anything. Only blocks starting NEW
+  // work; a shop that's run out of balance can still complete and
+  // invoice whatever job cards they already have open (see the
+  // line-item/status routes, which have no wallet check at all).
+  const [{ data: wallet }, { data: settings }] = await Promise.all([
+    admin.from('org_wallets').select('balance').eq('org_id', session.employee.org_id).maybeSingle(),
+    admin.from('platform_settings').select('*').limit(1).maybeSingle()
+  ]);
+  const currentBalance = wallet?.balance ?? 0;
+  const blockThreshold = settings?.block_threshold ?? -50;
+  const supportPhone = settings?.support_phone ?? '';
+
+  if (currentBalance <= blockThreshold) {
+    return NextResponse.json(
+      {
+        error: {
+          code: 'WALLET_BLOCKED',
+          message: `Wallet balance too low to start a new job (₹${currentBalance}). Please recharge${
+            supportPhone ? ` — call ${supportPhone}` : ''
+          } to continue.`
+        }
+      },
+      { status: 402 }
     );
   }
 
@@ -125,6 +151,29 @@ export async function POST(req: NextRequest) {
     new_status: 'received',
     changed_by: session.employee.id,
     note: 'Job card created'
+  });
+
+  // Wallet debit — priced by vehicle type (bike vs car), replacing the
+  // old flat ₹10/job daily-billing system. Deducted immediately (not
+  // aggregated into a daily bill) since the whole point is a live,
+  // real-time prepaid balance the shop can watch drain. A missing
+  // wallet row (shouldn't normally happen — created at signup) is
+  // treated as balance 0 rather than crashing job creation.
+  const jobPrice = vehicle.vehicle_type === 'bike' ? settings?.bike_job_price ?? 5 : settings?.car_job_price ?? 10;
+  const newBalance = currentBalance - jobPrice;
+
+  if (wallet) {
+    await admin.from('org_wallets').update({ balance: newBalance, updated_at: new Date().toISOString() }).eq('org_id', session.employee.org_id);
+  } else {
+    await admin.from('org_wallets').insert({ org_id: session.employee.org_id, balance: newBalance });
+  }
+  await admin.from('wallet_transactions').insert({
+    org_id: session.employee.org_id,
+    type: 'debit',
+    amount: jobPrice,
+    reason: `Job card ${jobNumber} (${vehicle.vehicle_type === 'bike' ? 'bike' : 'car'})`,
+    balance_after: newBalance,
+    related_job_id: job.id
   });
 
   return NextResponse.json(job, { status: 201 });

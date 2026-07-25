@@ -134,7 +134,7 @@ export default function JobCardsClient({
     const res = await fetch('/api/vehicles', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customerId, plateNumber: quickPlateNumber, make: quickMake, model: quickModel })
+      body: JSON.stringify({ customerId, plateNumber: quickPlateNumber, make: quickMake, model: quickModel, vehicleType: quickVehicleType })
     });
     const data = await res.json();
     if (!res.ok) {

@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
       plate_number: parsed.data.plateNumber,
       vin: parsed.data.vin,
       make: parsed.data.make,
+      vehicle_type: parsed.data.vehicleType,
       model: parsed.data.model,
       year: parsed.data.year ?? new Date().getFullYear(),
       color: parsed.data.color,
