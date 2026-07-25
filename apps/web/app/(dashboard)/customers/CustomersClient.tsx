@@ -11,6 +11,7 @@ interface Customer {
   last_name: string;
   phone: string;
   email: string;
+  address: string;
 }
 
 export default function CustomersClient({ initialCustomers }: { initialCustomers: Customer[] }) {
@@ -26,6 +27,7 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
 
   const filteredCustomers = initialCustomers.filter((c) => {
     if (!searchQuery.trim()) return true;
@@ -42,6 +44,7 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
     setLastName('');
     setPhone('');
     setEmail('');
+    setAddress('');
     setShowForm(false);
     setEditingId(null);
     setError(null);
@@ -53,6 +56,7 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
     setLastName(c.last_name);
     setPhone(c.phone);
     setEmail(c.email ?? '');
+    setAddress(c.address ?? '');
     setShowForm(true);
   }
 
@@ -73,7 +77,7 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
     setSubmitting(true);
     setError(null);
 
-    const body = { firstName, lastName, phone, email };
+    const body = { firstName, lastName, phone, email, address };
     const res = editingId
       ? await fetch(`/api/customers/${editingId}`, {
           method: 'PATCH',
@@ -174,6 +178,16 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={submitting}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Address (optional)</label>
+                <input
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  disabled={submitting}
+                  placeholder="House/Flat, Street, Area, City"
                   className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
                 />
               </div>

@@ -106,6 +106,12 @@ export default function JobCardDetailPage() {
   const [selectedItemId, setSelectedItemId] = useState('');
   const [selectedItemType, setSelectedItemType] = useState<'service' | 'part' | null>(null);
   const [addItemQty, setAddItemQty] = useState('1');
+  const [showQuickCreateItem, setShowQuickCreateItem] = useState(false);
+  const [quickItemType, setQuickItemType] = useState<'service' | 'part'>('service');
+  const [quickItemName, setQuickItemName] = useState('');
+  const [quickItemPrice, setQuickItemPrice] = useState('');
+  const [quickItemSku, setQuickItemSku] = useState('');
+  const [quickItemSubmitting, setQuickItemSubmitting] = useState(false);
 
   async function loadAll() {
     setLoading(true);
@@ -177,6 +183,59 @@ export default function JobCardDetailPage() {
       return;
     }
     window.location.href = `/invoices/${data.invoice.id}`;
+  }
+
+  async function handleQuickCreateItem() {
+    setQuickItemSubmitting(true);
+    setError(null);
+
+    const res =
+      quickItemType === 'service'
+        ? await fetch('/api/services', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: quickItemName, baseCost: Number(quickItemPrice) || 0 })
+          })
+        : await fetch('/api/parts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: quickItemName, sku: quickItemSku, unitCost: Number(quickItemPrice) || 0 })
+          });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error?.message ?? `Could not create new ${quickItemType}.`);
+      setQuickItemSubmitting(false);
+      return;
+    }
+
+    // Add the freshly-created item straight onto this job — no need to
+    // search for it again right after creating it.
+    setError(null);
+    const addRes = await fetch(`/api/job-cards/${jobId}/line-items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: quickItemType,
+        itemId: data.id,
+        qty: Number(addItemQty) || 1,
+        unitCost: quickItemType === 'service' ? data.base_cost : data.unit_cost
+      })
+    });
+    const addData = await addRes.json();
+    if (!addRes.ok) {
+      setError(addData.error?.message ?? 'Item was created in the catalog, but could not be added to this job.');
+      setQuickItemSubmitting(false);
+      return;
+    }
+
+    setQuickItemName('');
+    setQuickItemPrice('');
+    setQuickItemSku('');
+    setShowQuickCreateItem(false);
+    setShowAddItemForm(false);
+    setQuickItemSubmitting(false);
+    loadAll();
   }
 
   async function handleAddItem() {
@@ -569,7 +628,79 @@ export default function JobCardDetailPage() {
                   getSubLabel={(item) => `${item.type === 'part' ? (item as any).sku + ' · ' : ''}₹${item.price} ${item.type === 'service' ? '(Service)' : '(Part)'}`}
                   getSearchText={(item) => `${item.name} ${item.type === 'part' ? (item as any).sku ?? '' : ''}`}
                   placeholder="Search services or parts (by name or part no)..."
+                  onAddNew={(query) => {
+                    setQuickItemName(query);
+                    setShowQuickCreateItem(true);
+                  }}
+                  addNewLabel="New service/part"
                 />
+
+                {showQuickCreateItem && (
+                  <div className="bg-slate-950 border border-amber-900/50 rounded-xl p-3 space-y-3 animate-fadeIn">
+                    <div className="flex gap-2">
+                      {(['service', 'part'] as const).map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setQuickItemType(t)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize cursor-pointer transition-all ${
+                            quickItemType === t ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <input
+                        value={quickItemName}
+                        onChange={(e) => setQuickItemName(e.target.value)}
+                        placeholder={quickItemType === 'service' ? 'Service name' : 'Part name'}
+                        disabled={quickItemSubmitting}
+                        className="bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none disabled:opacity-50"
+                      />
+                      {quickItemType === 'part' && (
+                        <input
+                          value={quickItemSku}
+                          onChange={(e) => setQuickItemSku(e.target.value)}
+                          placeholder="Part no / SKU"
+                          disabled={quickItemSubmitting}
+                          className="bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none disabled:opacity-50"
+                        />
+                      )}
+                      <input
+                        type="number"
+                        value={quickItemPrice}
+                        onChange={(e) => setQuickItemPrice(e.target.value)}
+                        placeholder={quickItemType === 'service' ? 'Base cost (₹)' : 'Unit cost (₹)'}
+                        min="0"
+                        disabled={quickItemSubmitting}
+                        className="bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none disabled:opacity-50"
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      This also creates a permanent entry in your {quickItemType === 'service' ? 'Services' : 'Parts'} catalog —
+                      not just for this job.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleQuickCreateItem}
+                        disabled={quickItemSubmitting || !quickItemName.trim() || (quickItemType === 'part' && !quickItemSku.trim())}
+                        className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-medium px-4 py-2 rounded-lg cursor-pointer disabled:opacity-50"
+                      >
+                        {quickItemSubmitting ? 'Creating...' : 'Create & Add to Job'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowQuickCreateItem(false)}
+                        className="text-xs text-slate-500 hover:text-slate-300 px-3 py-2 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <div className="w-24">
                     <label className="block text-xs font-mono text-slate-400 mb-1 uppercase">Qty</label>

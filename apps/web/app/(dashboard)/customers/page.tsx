@@ -19,7 +19,7 @@ export default async function CustomersPage() {
   const admin = createSupabaseAdminClient();
   const { data: customers } = await admin
     .from('customers')
-    .select('id, first_name, last_name, phone, email')
+    .select('id, first_name, last_name, phone, email, address')
     .eq('org_id', session.employee.org_id)
     .is('deleted_at', null)
     .order('created_at', { ascending: false });

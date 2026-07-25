@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ClipboardList, Plus, Gauge, Search } from 'lucide-react';
+import { ClipboardList, Plus, Gauge, Search, Pencil } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
 import BrandModelPicker from '@/components/BrandModelPicker';
 import FAB from '@/components/FAB';
@@ -411,8 +411,9 @@ export default function JobCardsClient({
                       {job.technician_name && <span className="text-amber-500/70"> · {job.technician_name}</span>}
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="text-right shrink-0 flex items-center gap-2">
                     <div className="text-amber-500 font-semibold font-mono">₹{job.estimated_cost.toLocaleString()}</div>
+                    <Pencil className="w-3.5 h-3.5 text-slate-600" />
                   </div>
                 </a>
               ))}
