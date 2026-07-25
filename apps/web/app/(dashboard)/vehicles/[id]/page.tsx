@@ -109,10 +109,16 @@ export default async function VehicleHistoryPage({ params }: { params: Promise<{
         </div>
 
         <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
-          <div className="p-4 border-b border-slate-800">
+          <div className="p-4 border-b border-slate-800 flex items-center justify-between">
             <h2 className="font-semibold flex items-center gap-2 text-sm">
               <Wrench className="w-4 h-4 text-amber-500" /> Job History
             </h2>
+            <a
+              href={`/job-cards?newFor=${vehicle.id}`}
+              className="text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-3 py-1.5 rounded-lg cursor-pointer"
+            >
+              + New Job Card
+            </a>
           </div>
           {!jobs || jobs.length === 0 ? (
             <div className="p-6 text-center text-slate-500 text-sm">No job cards for this vehicle yet.</div>

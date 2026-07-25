@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, type FormEvent } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ClipboardList, Plus, Gauge, Search, Pencil } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
 import BrandModelPicker from '@/components/BrandModelPicker';
@@ -68,6 +68,7 @@ export default function JobCardsClient({
   initialVehicles: Vehicle[];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const jobs = initialJobs;
   // Local state (not just `const customers = initialCustomers`) — needed
   // so a customer/vehicle created inline via the quick-add form appears
@@ -85,6 +86,21 @@ export default function JobCardsClient({
   const [vehicleId, setVehicleId] = useState('');
   const [odometerIn, setOdometerIn] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Coming from a vehicle's history page via "+ New Job Card" — auto-open
+  // the form with that vehicle (and its owner) already selected, instead
+  // of making someone search for a vehicle they were just looking at.
+  useEffect(() => {
+    const newForVehicleId = searchParams.get('newFor');
+    if (!newForVehicleId) return;
+    const vehicle = vehicles.find((v) => v.id === newForVehicleId);
+    if (vehicle) {
+      setCustomerId(vehicle.customer_id);
+      setVehicleId(vehicle.id);
+      setShowForm(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Inline "quick add" — lets a brand new customer or vehicle be created
   // without leaving this form, so a first-time visitor's job card can be
