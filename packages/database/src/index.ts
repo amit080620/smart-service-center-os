@@ -24,7 +24,10 @@ export type {
   InventoryTransaction,
   Supplier,
   SupplierBill,
+  SupplierBillItem,
   SupplierPayment,
+  PlatformUsageCharge,
+  PlatformBill,
   SessionContext
 } from './types';
 export type { Database } from './database.types';

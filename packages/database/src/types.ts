@@ -155,11 +155,23 @@ export interface JobCard {
   odometer_in: number;
   notes: string;
   technician_notes: string;
+  is_insurance_claim: boolean;
+  insurance_company: string;
+  insurance_claim_number: string;
+  insurance_approved_amount: number | null;
   completed_at: string | null;
   delivered_at: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+}
+
+export interface SupplierBillItem {
+  id: string;
+  bill_id: string;
+  part_id: string;
+  qty: number;
+  unit_cost: number;
 }
 
 export interface JobService {

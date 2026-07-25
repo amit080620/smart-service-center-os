@@ -2,8 +2,9 @@
 
 import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Truck, Plus, IndianRupee, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
+import { Truck, Plus, IndianRupee, ChevronDown, ChevronUp, Pencil, X } from 'lucide-react';
 import FAB from '@/components/FAB';
+import SearchableSelect from '@/components/SearchableSelect';
 
 interface Supplier {
   id: string;
@@ -13,6 +14,14 @@ interface Supplier {
   address: string;
   total_pending: number;
   bill_count: number;
+}
+interface BillItem {
+  id: string;
+  part_id: string;
+  part_name: string;
+  sku: string;
+  qty: number;
+  unit_cost: number;
 }
 interface Bill {
   id: string;
@@ -24,6 +33,13 @@ interface Bill {
   status: string;
   bill_date: string;
   notes: string;
+  items: BillItem[];
+}
+interface Part {
+  id: string;
+  name: string;
+  sku: string;
+  unit_cost: number;
 }
 
 const METHOD_LABELS: Record<string, string> = {
@@ -37,10 +53,12 @@ const METHOD_LABELS: Record<string, string> = {
 export default function SuppliersClient({
   initialSuppliers,
   initialBills,
+  parts,
   canManage
 }: {
   initialSuppliers: Supplier[];
   initialBills: Bill[];
+  parts: Part[];
   canManage: boolean;
 }) {
   const router = useRouter();
@@ -60,7 +78,14 @@ export default function SuppliersClient({
   const [contactPhone, setContactPhone] = useState('');
   const [address, setAddress] = useState('');
 
-  const [billAmount, setBillAmount] = useState('');
+  // The bill being drafted: a running "cart" of parts + qty + cost —
+  // added one at a time, but the whole bill is saved in a single
+  // request once. This replaces the old one-item-per-submit flow that
+  // made recording a multi-part delivery painfully slow.
+  const [draftItems, setDraftItems] = useState<Array<{ partId: string; partName: string; sku: string; qty: string; unitCost: string }>>([]);
+  const [draftPartId, setDraftPartId] = useState('');
+  const [draftQty, setDraftQty] = useState('1');
+  const [draftUnitCost, setDraftUnitCost] = useState('');
   const [billNumber, setBillNumber] = useState('');
   const [billNotes, setBillNotes] = useState('');
 
@@ -110,22 +135,52 @@ export default function SuppliersClient({
     startTransition(() => router.refresh());
   }
 
-  async function handleAddBill(supplierId: string) {
+  function handleAddDraftItem() {
+    const part = parts.find((p) => p.id === draftPartId);
+    if (!part) return;
+    setDraftItems((prev) => [
+      ...prev,
+      { partId: part.id, partName: part.name, sku: part.sku, qty: draftQty, unitCost: draftUnitCost || String(part.unit_cost) }
+    ]);
+    setDraftPartId('');
+    setDraftQty('1');
+    setDraftUnitCost('');
+  }
+
+  function handleRemoveDraftItem(index: number) {
+    setDraftItems((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function resetBillForm() {
+    setDraftItems([]);
+    setDraftPartId('');
+    setDraftQty('1');
+    setDraftUnitCost('');
+    setBillNumber('');
+    setBillNotes('');
+    setShowBillForm(null);
+  }
+
+  async function handleSaveBill(supplierId: string) {
     setError(null);
+    setSubmitting(true);
     const res = await fetch('/api/supplier-bills', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ supplierId, amount: Number(billAmount), billNumber, notes: billNotes })
+      body: JSON.stringify({
+        supplierId,
+        billNumber,
+        notes: billNotes,
+        items: draftItems.map((i) => ({ partId: i.partId, qty: Number(i.qty) || 0, unitCost: Number(i.unitCost) || 0 }))
+      })
     });
     const data = await res.json();
+    setSubmitting(false);
     if (!res.ok) {
       setError(data.error?.message ?? 'Could not record bill.');
       return;
     }
-    setBillAmount('');
-    setBillNumber('');
-    setBillNotes('');
-    setShowBillForm(null);
+    resetBillForm();
     startTransition(() => router.refresh());
   }
 
@@ -290,7 +345,7 @@ export default function SuppliersClient({
                     <div className="border-t border-slate-800 p-4 space-y-3">
                       {canManage && (
                         <button
-                          onClick={() => setShowBillForm(showBillForm === s.id ? null : s.id)}
+                          onClick={() => (showBillForm === s.id ? resetBillForm() : (resetBillForm(), setShowBillForm(s.id)))}
                           className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer"
                         >
                           <Plus className="w-3 h-3" /> Record New Bill
@@ -298,42 +353,105 @@ export default function SuppliersClient({
                       )}
 
                       {showBillForm === s.id && (
-                        <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-end gap-2 flex-wrap">
-                          <div>
-                            <label className="block text-xs font-mono text-slate-400 mb-1 uppercase">Amount (₹)</label>
-                            <input
-                              type="number"
-                              value={billAmount}
-                              onChange={(e) => setBillAmount(e.target.value)}
-                              min="0.01"
-                              className="w-28 bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none"
-                            />
+                        <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-3">
+                          <div className="flex items-end gap-2 flex-wrap">
+                            <div className="flex-1 min-w-[160px]">
+                              <label className="block text-xs font-mono text-slate-400 mb-1 uppercase">Part</label>
+                              <SearchableSelect
+                                items={parts}
+                                value={draftPartId}
+                                onChange={(id) => {
+                                  setDraftPartId(id);
+                                  const p = parts.find((x) => x.id === id);
+                                  if (p) setDraftUnitCost(String(p.unit_cost));
+                                }}
+                                getLabel={(p) => p.name}
+                                getSubLabel={(p) => p.sku}
+                                getSearchText={(p) => `${p.name} ${p.sku}`}
+                                placeholder="Search part..."
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-mono text-slate-400 mb-1 uppercase">Qty</label>
+                              <input
+                                type="number"
+                                value={draftQty}
+                                onChange={(e) => setDraftQty(e.target.value)}
+                                min="1"
+                                className="w-16 bg-slate-900 border border-slate-800 rounded-lg py-2 px-2 text-sm outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-mono text-slate-400 mb-1 uppercase">Cost (₹)</label>
+                              <input
+                                type="number"
+                                value={draftUnitCost}
+                                onChange={(e) => setDraftUnitCost(e.target.value)}
+                                min="0"
+                                className="w-20 bg-slate-900 border border-slate-800 rounded-lg py-2 px-2 text-sm outline-none"
+                              />
+                            </div>
+                            <button
+                              onClick={handleAddDraftItem}
+                              disabled={!draftPartId}
+                              className="bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium px-3 py-2 rounded-lg cursor-pointer disabled:opacity-50"
+                            >
+                              + Add Item
+                            </button>
                           </div>
-                          <div>
-                            <label className="block text-xs font-mono text-slate-400 mb-1 uppercase">Bill/Invoice #</label>
-                            <input
-                              value={billNumber}
-                              onChange={(e) => setBillNumber(e.target.value)}
-                              placeholder="optional"
-                              className="w-32 bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none"
-                            />
+
+                          {draftItems.length > 0 && (
+                            <div className="bg-slate-900 rounded-lg divide-y divide-slate-800">
+                              {draftItems.map((item, idx) => (
+                                <div key={idx} className="flex items-center justify-between px-3 py-2 text-sm">
+                                  <span className="text-slate-300 truncate">
+                                    {item.partName} <span className="text-slate-500 text-xs">×{item.qty}</span>
+                                  </span>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="font-mono text-amber-500">₹{(Number(item.qty) * Number(item.unitCost)).toLocaleString('en-IN')}</span>
+                                    <button onClick={() => handleRemoveDraftItem(idx)} className="text-slate-600 hover:text-red-400 cursor-pointer">
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                              <div className="flex items-center justify-between px-3 py-2 text-sm font-semibold">
+                                <span className="text-slate-400">Bill Total</span>
+                                <span className="font-mono text-amber-400">
+                                  ₹{draftItems.reduce((sum, i) => sum + Number(i.qty) * Number(i.unitCost), 0).toLocaleString('en-IN')}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex items-end gap-2 flex-wrap">
+                            <div>
+                              <label className="block text-xs font-mono text-slate-400 mb-1 uppercase">Bill/Invoice #</label>
+                              <input
+                                value={billNumber}
+                                onChange={(e) => setBillNumber(e.target.value)}
+                                placeholder="optional"
+                                className="w-32 bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-[120px]">
+                              <label className="block text-xs font-mono text-slate-400 mb-1 uppercase">Notes</label>
+                              <input
+                                value={billNotes}
+                                onChange={(e) => setBillNotes(e.target.value)}
+                                placeholder="optional"
+                                className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none"
+                              />
+                            </div>
+                            <button
+                              onClick={() => handleSaveBill(s.id)}
+                              disabled={submitting || draftItems.length === 0}
+                              className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-medium px-4 py-2 rounded-lg cursor-pointer disabled:opacity-50"
+                            >
+                              {submitting ? 'Saving...' : 'Save Bill'}
+                            </button>
                           </div>
-                          <div className="flex-1 min-w-[120px]">
-                            <label className="block text-xs font-mono text-slate-400 mb-1 uppercase">Notes</label>
-                            <input
-                              value={billNotes}
-                              onChange={(e) => setBillNotes(e.target.value)}
-                              placeholder="e.g. brake pads batch"
-                              className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none"
-                            />
-                          </div>
-                          <button
-                            onClick={() => handleAddBill(s.id)}
-                            disabled={!billAmount}
-                            className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-medium px-4 py-2 rounded-lg cursor-pointer disabled:opacity-50"
-                          >
-                            Save
-                          </button>
+                          <p className="text-xs text-slate-500">Saving this bill also adds these quantities to your Inventory automatically.</p>
                         </div>
                       )}
 
@@ -352,6 +470,11 @@ export default function SuppliersClient({
                                     </span>
                                   </div>
                                   {b.notes && <div className="text-xs text-slate-500 truncate">{b.notes}</div>}
+                                  {b.items.length > 0 && (
+                                    <div className="text-xs text-slate-600 truncate">
+                                      {b.items.map((i) => `${i.part_name} ×${i.qty}`).join(', ')}
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="text-right shrink-0">
                                   <div className="font-mono text-sm text-slate-200">₹{b.amount.toLocaleString('en-IN')}</div>

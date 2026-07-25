@@ -357,6 +357,10 @@ export interface Database {
           odometer_in: number;
           notes: string;
           technician_notes: string;
+          is_insurance_claim: boolean;
+          insurance_company: string;
+          insurance_claim_number: string;
+          insurance_approved_amount: number | null;
           completed_at: string | null;
           delivered_at: string | null;
           created_at: string;
@@ -384,6 +388,10 @@ export interface Database {
           odometer_in: number;
           notes?: string;
           technician_notes?: string;
+          is_insurance_claim?: boolean;
+          insurance_company?: string;
+          insurance_claim_number?: string;
+          insurance_approved_amount?: number | null;
           completed_at?: string | null;
           delivered_at?: string | null;
           created_at?: string;
@@ -725,6 +733,39 @@ export interface Database {
             columns: ['supplier_id'];
             isOneToOne: false;
             referencedRelation: 'suppliers';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      supplier_bill_items: {
+        Row: {
+          id: string;
+          bill_id: string;
+          part_id: string;
+          qty: number;
+          unit_cost: number;
+        };
+        Insert: {
+          id?: string;
+          bill_id: string;
+          part_id: string;
+          qty: number;
+          unit_cost: number;
+        };
+        Update: Partial<Database['public']['Tables']['supplier_bill_items']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'supplier_bill_items_bill_id_fkey';
+            columns: ['bill_id'];
+            isOneToOne: false;
+            referencedRelation: 'supplier_bills';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'supplier_bill_items_part_id_fkey';
+            columns: ['part_id'];
+            isOneToOne: false;
+            referencedRelation: 'parts';
             referencedColumns: ['id'];
           }
         ];

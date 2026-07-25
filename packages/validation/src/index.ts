@@ -172,9 +172,17 @@ export type SupplierInput = z.infer<typeof supplierSchema>;
 export const supplierBillSchema = z.object({
   supplierId: z.string().uuid('Select a valid supplier.'),
   billNumber: z.string().trim().optional().default(''),
-  amount: z.number().min(0.01, 'Amount must be greater than zero.'),
   billDate: z.string().optional(),
-  notes: z.string().trim().optional().default('')
+  notes: z.string().trim().optional().default(''),
+  items: z
+    .array(
+      z.object({
+        partId: z.string().uuid('Select a valid part.'),
+        qty: z.number().min(0.01, 'Quantity must be greater than zero.'),
+        unitCost: z.number().min(0, 'Cost cannot be negative.')
+      })
+    )
+    .min(1, 'Add at least one item to the bill.')
 });
 export type SupplierBillInput = z.infer<typeof supplierBillSchema>;
 
@@ -193,3 +201,13 @@ export const completeJobSchema = z.object({
   nextServiceKm: z.number().int().min(0).optional()
 });
 export type CompleteJobInput = z.infer<typeof completeJobSchema>;
+
+export const updateJobDetailsSchema = z.object({
+  notes: z.string().trim().optional(),
+  odometerIn: z.number().int().min(0).optional(),
+  isInsuranceClaim: z.boolean().optional(),
+  insuranceCompany: z.string().trim().optional(),
+  insuranceClaimNumber: z.string().trim().optional(),
+  insuranceApprovedAmount: z.number().min(0).optional().nullable()
+});
+export type UpdateJobDetailsInput = z.infer<typeof updateJobDetailsSchema>;

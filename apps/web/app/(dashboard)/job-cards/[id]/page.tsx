@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ClipboardList, Wrench, Package, Plus, Clock, Trash2, Printer } from 'lucide-react';
+import { ClipboardList, Wrench, Package, Plus, Clock, Trash2, Printer, ShieldCheck } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
+import JobDetailsEditPanel from './JobDetailsEditPanel';
 
 interface JobDetail {
   id: string;
@@ -15,6 +16,10 @@ interface JobDetail {
   plate_number: string;
   odometer_in: number;
   notes: string;
+  is_insurance_claim: boolean;
+  insurance_company: string;
+  insurance_claim_number: string;
+  insurance_approved_amount: number | null;
   estimated_cost: number;
   final_cost: number;
   assigned_technician_id: string | null;
@@ -591,7 +596,32 @@ export default function JobCardDetailPage() {
               <div className="text-slate-300 mt-0.5">{job.notes}</div>
             </div>
           )}
+          {job.is_insurance_claim && (
+            <div className="col-span-2 sm:col-span-4 bg-amber-950/20 border border-amber-900/40 rounded-xl p-3">
+              <div className="text-xs font-mono text-amber-400 uppercase flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5" /> Insurance Claim
+              </div>
+              <div className="text-slate-300 mt-1 text-sm">
+                {job.insurance_company || 'Company not set'} {job.insurance_claim_number && `· Claim #${job.insurance_claim_number}`}
+                {job.insurance_approved_amount !== null && ` · Approved ₹${job.insurance_approved_amount.toLocaleString('en-IN')}`}
+              </div>
+            </div>
+          )}
         </div>
+
+        <JobDetailsEditPanel
+          job={{
+            id: job.id,
+            notes: job.notes,
+            odometer_in: job.odometer_in,
+            is_insurance_claim: job.is_insurance_claim,
+            insurance_company: job.insurance_company,
+            insurance_claim_number: job.insurance_claim_number,
+            insurance_approved_amount: job.insurance_approved_amount
+          }}
+          canEdit={job.status !== 'completed' || canEditCompleted}
+          onSaved={loadAll}
+        />
 
         {/* Unified add — searches services and parts together, one flow
             instead of two separate buttons/forms to choose between. */}
