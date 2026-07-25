@@ -3,7 +3,8 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ClipboardList, Plus, Gauge, Search } from 'lucide-react';
-import SearchableSelect from './SearchableSelect';
+import SearchableSelect from '@/components/SearchableSelect';
+import BrandModelPicker from '@/components/BrandModelPicker';
 
 interface JobCard {
   id: string;
@@ -94,6 +95,7 @@ export default function JobCardsClient({
   const [quickCustomerSubmitting, setQuickCustomerSubmitting] = useState(false);
 
   const [showQuickAddVehicle, setShowQuickAddVehicle] = useState(false);
+  const [quickVehicleType, setQuickVehicleType] = useState<'car' | 'bike'>('car');
   const [quickPlateNumber, setQuickPlateNumber] = useState('');
   const [quickMake, setQuickMake] = useState('');
   const [quickModel, setQuickModel] = useState('');
@@ -312,30 +314,23 @@ export default function JobCardsClient({
                 addNewLabel="New vehicle"
               />
               {showQuickAddVehicle && (
-                <div className="mt-2 bg-slate-950 border border-amber-900/50 rounded-xl p-3 space-y-2 animate-fadeIn">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <input
-                      value={quickPlateNumber}
-                      onChange={(e) => setQuickPlateNumber(e.target.value)}
-                      placeholder="Plate number"
-                      disabled={quickVehicleSubmitting}
-                      className="bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none disabled:opacity-50"
-                    />
-                    <input
-                      value={quickMake}
-                      onChange={(e) => setQuickMake(e.target.value)}
-                      placeholder="Make"
-                      disabled={quickVehicleSubmitting}
-                      className="bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none disabled:opacity-50"
-                    />
-                    <input
-                      value={quickModel}
-                      onChange={(e) => setQuickModel(e.target.value)}
-                      placeholder="Model"
-                      disabled={quickVehicleSubmitting}
-                      className="bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none disabled:opacity-50"
-                    />
-                  </div>
+                <div className="mt-2 bg-slate-950 border border-amber-900/50 rounded-xl p-3 space-y-3 animate-fadeIn">
+                  <input
+                    value={quickPlateNumber}
+                    onChange={(e) => setQuickPlateNumber(e.target.value)}
+                    placeholder="Plate number"
+                    disabled={quickVehicleSubmitting}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none disabled:opacity-50"
+                  />
+                  <BrandModelPicker
+                    vehicleType={quickVehicleType}
+                    onVehicleTypeChange={setQuickVehicleType}
+                    make={quickMake}
+                    onMakeChange={setQuickMake}
+                    model={quickModel}
+                    onModelChange={setQuickModel}
+                    disabled={quickVehicleSubmitting}
+                  />
                   <div className="flex gap-2">
                     <button
                       type="button"

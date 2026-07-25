@@ -13,7 +13,7 @@ export default async function VehiclesPage() {
   const [{ data: vehicles }, { data: customers }] = await Promise.all([
     admin
       .from('vehicles')
-      .select('id, customer_id, plate_number, make, model, year, color, odometer_km')
+      .select('id, customer_id, plate_number, vin, make, model, year, color, odometer_km')
       .eq('org_id', session.employee.org_id)
       .is('deleted_at', null)
       .order('created_at', { ascending: false }),

@@ -2,12 +2,14 @@
 
 import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Car, Plus, Gauge, Search } from 'lucide-react';
+import { Car, Plus, Gauge, Search, Hash } from 'lucide-react';
+import BrandModelPicker from '@/components/BrandModelPicker';
 
 interface Vehicle {
   id: string;
   customer_id: string;
   plate_number: string;
+  vin: string;
   make: string;
   model: string;
   year: number;
@@ -32,6 +34,7 @@ export default function VehiclesClient({ initialVehicles, initialCustomers }: { 
     return (
       v.plate_number.toLowerCase().includes(q) ||
       `${v.make} ${v.model}`.toLowerCase().includes(q) ||
+      (v.vin ?? '').toLowerCase().includes(q) ||
       customerName(v.customer_id).toLowerCase().includes(q)
     );
   });
@@ -42,6 +45,8 @@ export default function VehiclesClient({ initialVehicles, initialCustomers }: { 
 
   const [customerId, setCustomerId] = useState('');
   const [plateNumber, setPlateNumber] = useState('');
+  const [vin, setVin] = useState('');
+  const [vehicleType, setVehicleType] = useState<'car' | 'bike'>('car');
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
   const [year, setYear] = useState(String(new Date().getFullYear()));
@@ -63,6 +68,7 @@ export default function VehiclesClient({ initialVehicles, initialCustomers }: { 
       body: JSON.stringify({
         customerId,
         plateNumber,
+        vin,
         make,
         model,
         year: year ? Number(year) : undefined,
@@ -79,6 +85,7 @@ export default function VehiclesClient({ initialVehicles, initialCustomers }: { 
 
     setCustomerId('');
     setPlateNumber('');
+    setVin('');
     setMake('');
     setModel('');
     setColor('');
@@ -113,7 +120,7 @@ export default function VehiclesClient({ initialVehicles, initialCustomers }: { 
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by plate number, make/model, or owner..."
+            placeholder="Search by plate number, make/model, chassis no, or owner..."
             className="w-full bg-slate-900/80 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none"
           />
         </div>
@@ -153,6 +160,17 @@ export default function VehiclesClient({ initialVehicles, initialCustomers }: { 
                 ))}
               </select>
             </div>
+
+            <BrandModelPicker
+              vehicleType={vehicleType}
+              onVehicleTypeChange={setVehicleType}
+              make={make}
+              onMakeChange={setMake}
+              model={model}
+              onModelChange={setModel}
+              disabled={submitting}
+            />
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Plate Number</label>
@@ -166,33 +184,23 @@ export default function VehiclesClient({ initialVehicles, initialCustomers }: { 
                 />
               </div>
               <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase flex items-center gap-1">
+                  <Hash className="w-3 h-3" /> Chassis Number (optional)
+                </label>
+                <input
+                  value={vin}
+                  onChange={(e) => setVin(e.target.value)}
+                  disabled={submitting}
+                  placeholder="e.g. MA3ERLF1S00123456"
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
+                />
+              </div>
+              <div>
                 <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Color</label>
                 <input
                   value={color}
                   onChange={(e) => setColor(e.target.value)}
                   disabled={submitting}
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Make</label>
-                <input
-                  value={make}
-                  onChange={(e) => setMake(e.target.value)}
-                  required
-                  disabled={submitting}
-                  placeholder="Maruti Suzuki"
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Model</label>
-                <input
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                  required
-                  disabled={submitting}
-                  placeholder="Swift"
                   className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
                 />
               </div>
@@ -209,7 +217,7 @@ export default function VehiclesClient({ initialVehicles, initialCustomers }: { 
             </div>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !make || !model}
               className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2.5 rounded-xl cursor-pointer disabled:opacity-50"
             >
               {submitting ? 'Saving...' : 'Save Vehicle'}
@@ -232,6 +240,7 @@ export default function VehiclesClient({ initialVehicles, initialCustomers }: { 
                   <div className="flex items-center gap-x-4 gap-y-1 mt-1 text-xs text-slate-500 font-mono flex-wrap">
                     <span className="text-amber-500 font-semibold">{v.plate_number}</span>
                     <span className="truncate">{customerName(v.customer_id)}</span>
+                    {v.vin && <span className="truncate">Chassis: {v.vin}</span>}
                     {v.color && <span>{v.color}</span>}
                     <span className="flex items-center gap-1">
                       <Gauge className="w-3 h-3" /> {v.odometer_km.toLocaleString()} km
