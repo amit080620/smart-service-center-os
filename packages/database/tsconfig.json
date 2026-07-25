@@ -1,8 +1,4 @@
 {
   "extends": "@smartbizos/config/tsconfig.base.json",
-  "compilerOptions": {
-    "outDir": "./dist",
-    "declaration": true
-  },
   "include": ["src/**/*.ts"]
 }
