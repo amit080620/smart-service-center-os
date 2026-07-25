@@ -235,7 +235,7 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
                       )}
                     </div>
                   </a>
-                  <button onClick={() => startEdit(c)} className="text-slate-500 hover:text-amber-400 cursor-pointer p-1 shrink-0">
+                  <button onClick={() => startEdit(c)} className="text-slate-500 hover:text-amber-400 cursor-pointer p-1 shrink-0" title="Edit">
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
                   <button onClick={() => handleDeactivate(c)} className="text-slate-500 hover:text-red-400 cursor-pointer p-1 shrink-0" title="Deactivate">

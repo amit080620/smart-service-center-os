@@ -399,7 +399,7 @@ export default function ServicesClient({ initialServices, canManage }: { initial
                     </span>
                     {canManage && (
                       <>
-                        <button onClick={() => startEdit(s)} className="text-slate-500 hover:text-amber-400 cursor-pointer p-1">
+                        <button onClick={() => startEdit(s)} className="text-slate-500 hover:text-amber-400 cursor-pointer p-1" title="Edit">
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <button

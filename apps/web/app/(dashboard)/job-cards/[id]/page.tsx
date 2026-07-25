@@ -797,6 +797,7 @@ export default function JobCardDetailPage() {
                       <button
                         onClick={() => handleDeleteLineItem('service', s.id)}
                         className="text-slate-600 hover:text-red-400 cursor-pointer p-1"
+                        title="Remove"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -845,6 +846,7 @@ export default function JobCardDetailPage() {
                       <button
                         onClick={() => handleDeleteLineItem('part', p.id)}
                         className="text-slate-600 hover:text-red-400 cursor-pointer p-1"
+                        title="Remove"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

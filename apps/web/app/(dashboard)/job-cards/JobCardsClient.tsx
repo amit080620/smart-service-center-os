@@ -188,7 +188,7 @@ export default function JobCardsClient({
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 sm:p-8">
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-display font-bold flex items-center gap-2">
