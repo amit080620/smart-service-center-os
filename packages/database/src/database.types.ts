@@ -250,6 +250,8 @@ export interface Database {
           discount_percent: number;
           est_duration_minutes: number;
           category: string;
+          hsn_sac_code: string;
+          unit: string;
           is_active: boolean;
           created_at: string;
           updated_at: string;
@@ -263,6 +265,8 @@ export interface Database {
           discount_percent?: number;
           est_duration_minutes?: number;
           category?: string;
+          hsn_sac_code?: string;
+          unit?: string;
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -290,6 +294,8 @@ export interface Database {
           supplier_id: string | null;
           unit_cost: number;
           discount_percent: number;
+          hsn_sac_code: string;
+          unit: string;
           is_active: boolean;
           created_at: string;
           updated_at: string;
@@ -305,6 +311,8 @@ export interface Database {
           supplier_id?: string | null;
           unit_cost: number;
           discount_percent?: number;
+          hsn_sac_code?: string;
+          unit?: string;
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;

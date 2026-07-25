@@ -74,6 +74,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       ...(parsed.data.supplierId !== undefined && { supplier_id: parsed.data.supplierId }),
       ...(parsed.data.unitCost !== undefined && { unit_cost: parsed.data.unitCost }),
       ...(parsed.data.discountPercent !== undefined && { discount_percent: parsed.data.discountPercent }),
+      ...(parsed.data.hsnSacCode !== undefined && { hsn_sac_code: parsed.data.hsnSacCode }),
+      ...(parsed.data.unit !== undefined && { unit: parsed.data.unit }),
       ...(parsed.data.isActive !== undefined && { is_active: parsed.data.isActive }),
       updated_at: new Date().toISOString()
     })

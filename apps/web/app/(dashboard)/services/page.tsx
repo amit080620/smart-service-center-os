@@ -13,7 +13,7 @@ export default async function ServicesPage() {
   const admin = createSupabaseAdminClient();
   const { data: services } = await admin
     .from('services')
-    .select('id, name, description, base_cost, discount_percent, est_duration_minutes, category, is_active')
+    .select('id, name, description, base_cost, discount_percent, est_duration_minutes, category, hsn_sac_code, unit, is_active')
     .eq('org_id', session.employee.org_id)
     .order('name');
 

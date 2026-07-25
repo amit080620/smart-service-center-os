@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Package, Plus, IndianRupee, Search, Pencil, Ban, RotateCcw } from 'lucide-react';
 import FAB from '@/components/FAB';
 
+const UNIT_OPTIONS = ['piece', 'litre', 'kg', 'meter', 'box', 'set', 'pair'];
+const CATEGORY_OPTIONS = ['general', 'engine', 'brakes', 'electrical', 'body', 'suspension', 'tyres', 'fluids', 'filters'];
+
 interface Part {
   id: string;
   name: string;
@@ -15,6 +18,8 @@ interface Part {
   supplier_name: string | null;
   unit_cost: number;
   discount_percent: number;
+  hsn_sac_code: string;
+  unit: string;
   is_active: boolean;
 }
 interface Supplier {
@@ -35,6 +40,7 @@ export default function PartsClient({
   const [isPending, startTransition] = useTransition();
   const parts = initialParts;
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [showInactive, setShowInactive] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -46,6 +52,9 @@ export default function PartsClient({
   const [unitCost, setUnitCost] = useState('');
   const [discountPercent, setDiscountPercent] = useState('0');
   const [supplierId, setSupplierId] = useState('');
+  const [hsnSacCode, setHsnSacCode] = useState('');
+  const [unit, setUnit] = useState('piece');
+  const [category, setCategory] = useState('general');
 
   function resetForm() {
     setName('');
@@ -53,6 +62,9 @@ export default function PartsClient({
     setUnitCost('');
     setDiscountPercent('0');
     setSupplierId('');
+    setHsnSacCode('');
+    setUnit('piece');
+    setCategory('general');
     setShowForm(false);
     setEditingId(null);
   }
@@ -64,6 +76,9 @@ export default function PartsClient({
     setUnitCost(String(p.unit_cost));
     setDiscountPercent(String(p.discount_percent ?? 0));
     setSupplierId(p.supplier_id ?? '');
+    setHsnSacCode(p.hsn_sac_code ?? '');
+    setUnit(p.unit || 'piece');
+    setCategory(p.category || 'general');
     setShowForm(true);
   }
 
@@ -77,7 +92,10 @@ export default function PartsClient({
       sku,
       unitCost: Number(unitCost),
       discountPercent: Number(discountPercent) || 0,
-      supplierId: supplierId || null
+      supplierId: supplierId || null,
+      hsnSacCode,
+      unit,
+      category
     };
 
     const res = editingId
@@ -119,8 +137,11 @@ export default function PartsClient({
     startTransition(() => router.refresh());
   }
 
+  const categoriesInUse = [...new Set(parts.map((p) => p.category).filter(Boolean))].sort();
+
   const visibleParts = parts.filter((p) => showInactive || p.is_active);
   const filteredParts = visibleParts.filter((p) => {
+    if (categoryFilter && p.category !== categoryFilter) return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
@@ -161,6 +182,20 @@ export default function PartsClient({
               className="w-full bg-slate-900/80 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none"
             />
           </div>
+          {categoriesInUse.length > 1 && (
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="bg-slate-900/80 border border-slate-800 rounded-xl py-2.5 px-3 text-sm outline-none text-slate-300"
+            >
+              <option value="">All categories</option>
+              {categoriesInUse.map((c) => (
+                <option key={c} value={c}>
+                  {c.charAt(0).toUpperCase() + c.slice(1)}
+                </option>
+              ))}
+            </select>
+          )}
           <button
             onClick={() => setShowInactive(!showInactive)}
             className={`text-xs px-3 py-2 rounded-xl cursor-pointer ${showInactive ? 'bg-slate-700 text-slate-200' : 'bg-slate-900/80 text-slate-500'}`}
@@ -225,7 +260,47 @@ export default function PartsClient({
                   className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
                 />
               </div>
-              <div className="sm:col-span-2">
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Unit of Measure</label>
+                <select
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  disabled={submitting}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50 capitalize"
+                >
+                  {UNIT_OPTIONS.map((u) => (
+                    <option key={u} value={u} className="capitalize">
+                      {u}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  disabled={submitting}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50 capitalize"
+                >
+                  {CATEGORY_OPTIONS.map((c) => (
+                    <option key={c} value={c} className="capitalize">
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">HSN Code (optional)</label>
+                <input
+                  value={hsnSacCode}
+                  onChange={(e) => setHsnSacCode(e.target.value)}
+                  disabled={submitting}
+                  placeholder="e.g. 8708"
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50 font-mono"
+                />
+              </div>
+              <div>
                 <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Vendor / Supplier (optional)</label>
                 <select
                   value={supplierId}
@@ -274,7 +349,7 @@ export default function PartsClient({
           {visibleParts.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-sm">No parts yet — add your first one above.</div>
           ) : filteredParts.length === 0 ? (
-            <div className="p-8 text-center text-slate-500 text-sm">No parts match "{searchQuery}".</div>
+            <div className="p-8 text-center text-slate-500 text-sm">No parts match your search/filter.</div>
           ) : (
             <div className="divide-y divide-slate-800/50">
               {filteredParts.map((p) => (
@@ -286,11 +361,13 @@ export default function PartsClient({
                     </div>
                     <div className="text-xs text-slate-500 mt-0.5 font-mono truncate">
                       {p.sku} {p.supplier_name && `· ${p.supplier_name}`} {p.discount_percent > 0 && `· ${p.discount_percent}% off`}
+                      {p.hsn_sac_code && ` · HSN ${p.hsn_sac_code}`}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="flex items-center gap-0.5 text-amber-500 font-semibold font-mono text-sm">
                       <IndianRupee className="w-3.5 h-3.5" /> {p.unit_cost.toLocaleString()}
+                      <span className="text-slate-500 font-normal text-xs">/{p.unit || 'piece'}</span>
                     </span>
                     {canManage && (
                       <>

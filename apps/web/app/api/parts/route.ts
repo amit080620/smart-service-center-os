@@ -101,6 +101,8 @@ export async function POST(req: NextRequest) {
       supplier_id: parsed.data.supplierId ?? null,
       unit_cost: parsed.data.unitCost,
       discount_percent: parsed.data.discountPercent,
+      hsn_sac_code: parsed.data.hsnSacCode,
+      unit: parsed.data.unit,
       is_active: true
     })
     .select()

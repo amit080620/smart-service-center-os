@@ -60,8 +60,8 @@ export default async function InvoicePrintPage({
 
   let customer = null;
   let vehicle = null;
-  let services: Array<{ id: string; name: string; qty: number; unit_cost: number }> = [];
-  let parts: Array<{ id: string; name: string; qty: number; unit_cost: number }> = [];
+  let services: Array<{ id: string; name: string; hsnSac: string; qty: number; unit_cost: number }> = [];
+  let parts: Array<{ id: string; name: string; hsnSac: string; qty: number; unit_cost: number }> = [];
 
   if (job) {
     const [{ data: customerData }, { data: vehicleData }, { data: jobServices }, { data: jobParts }] =
@@ -77,18 +77,20 @@ export default async function InvoicePrintPage({
     const serviceIds = (jobServices ?? []).map((s) => s.service_id);
     const partIds = (jobParts ?? []).map((p) => p.part_id);
     const [{ data: serviceCatalog }, { data: partCatalog }] = await Promise.all([
-      serviceIds.length ? admin.from('services').select('id, name').in('id', serviceIds) : Promise.resolve({ data: [] }),
-      partIds.length ? admin.from('parts').select('id, name').in('id', partIds) : Promise.resolve({ data: [] })
+      serviceIds.length ? admin.from('services').select('id, name, hsn_sac_code').in('id', serviceIds) : Promise.resolve({ data: [] }),
+      partIds.length ? admin.from('parts').select('id, name, hsn_sac_code').in('id', partIds) : Promise.resolve({ data: [] })
     ]);
     services = (jobServices ?? []).map((s) => ({
       id: s.id,
       name: serviceCatalog?.find((c) => c.id === s.service_id)?.name ?? 'Service',
+      hsnSac: serviceCatalog?.find((c) => c.id === s.service_id)?.hsn_sac_code ?? '',
       qty: s.qty,
       unit_cost: s.unit_cost
     }));
     parts = (jobParts ?? []).map((p) => ({
       id: p.id,
       name: partCatalog?.find((c) => c.id === p.part_id)?.name ?? 'Part',
+      hsnSac: partCatalog?.find((c) => c.id === p.part_id)?.hsn_sac_code ?? '',
       qty: p.qty,
       unit_cost: p.unit_cost
     }));
@@ -248,6 +250,7 @@ export default async function InvoicePrintPage({
             <tr className="border-b-2 border-black text-left">
               <th className="py-2 pr-2">#</th>
               <th className="py-2 pr-2">Description</th>
+              <th className="py-2 pr-2">HSN/SAC</th>
               <th className="py-2 pr-2 text-right">Qty</th>
               <th className="py-2 pr-2 text-right">Rate (₹)</th>
               <th className="py-2 text-right">Amount (₹)</th>
@@ -261,6 +264,7 @@ export default async function InvoicePrintPage({
                   <td className="py-2 pr-2">
                     {item.name} <span className="text-gray-500 text-xs">({item.kind})</span>
                   </td>
+                  <td className="py-2 pr-2 text-gray-600">{item.hsnSac || '—'}</td>
                   <td className="py-2 pr-2 text-right">{item.qty}</td>
                   <td className="py-2 pr-2 text-right">{item.unit_cost.toLocaleString('en-IN')}</td>
                   <td className="py-2 text-right">{(item.qty * item.unit_cost).toLocaleString('en-IN')}</td>

@@ -14,7 +14,7 @@ export default async function PartsPage() {
   const [{ data: parts }, { data: suppliers }] = await Promise.all([
     admin
       .from('parts')
-      .select('id, name, sku, description, category, supplier_id, unit_cost, discount_percent, is_active')
+      .select('id, name, sku, description, category, supplier_id, unit_cost, discount_percent, hsn_sac_code, unit, is_active')
       .eq('org_id', session.employee.org_id)
       .order('name'),
     admin.from('suppliers').select('id, name').eq('org_id', session.employee.org_id).order('name')

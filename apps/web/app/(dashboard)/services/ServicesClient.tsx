@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Wrench, Plus, Clock, IndianRupee, Search, Pencil, Ban, RotateCcw } from 'lucide-react';
 import FAB from '@/components/FAB';
 
+const UNIT_OPTIONS = ['piece', 'hour', 'job', 'set'];
+const CATEGORY_OPTIONS = ['general', 'engine', 'brakes', 'electrical', 'body', 'suspension', 'ac', 'inspection'];
+
 interface Service {
   id: string;
   name: string;
@@ -13,6 +16,8 @@ interface Service {
   discount_percent: number;
   est_duration_minutes: number;
   category: string;
+  hsn_sac_code: string;
+  unit: string;
   is_active: boolean;
 }
 
@@ -21,6 +26,7 @@ export default function ServicesClient({ initialServices, canManage }: { initial
   const [isPending, startTransition] = useTransition();
   const services = initialServices;
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [showInactive, setShowInactive] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -32,6 +38,9 @@ export default function ServicesClient({ initialServices, canManage }: { initial
   const [baseCost, setBaseCost] = useState('');
   const [discountPercent, setDiscountPercent] = useState('0');
   const [duration, setDuration] = useState('60');
+  const [hsnSacCode, setHsnSacCode] = useState('');
+  const [unit, setUnit] = useState('piece');
+  const [category, setCategory] = useState('general');
 
   function resetForm() {
     setName('');
@@ -39,6 +48,9 @@ export default function ServicesClient({ initialServices, canManage }: { initial
     setBaseCost('');
     setDiscountPercent('0');
     setDuration('60');
+    setHsnSacCode('');
+    setUnit('piece');
+    setCategory('general');
     setShowForm(false);
     setEditingId(null);
   }
@@ -50,6 +62,9 @@ export default function ServicesClient({ initialServices, canManage }: { initial
     setBaseCost(String(s.base_cost));
     setDiscountPercent(String(s.discount_percent ?? 0));
     setDuration(String(s.est_duration_minutes));
+    setHsnSacCode(s.hsn_sac_code ?? '');
+    setUnit(s.unit || 'piece');
+    setCategory(s.category || 'general');
     setShowForm(true);
   }
 
@@ -63,7 +78,10 @@ export default function ServicesClient({ initialServices, canManage }: { initial
       description,
       baseCost: Number(baseCost),
       discountPercent: Number(discountPercent) || 0,
-      estDurationMinutes: Number(duration)
+      estDurationMinutes: Number(duration),
+      hsnSacCode,
+      unit,
+      category
     };
 
     const res = editingId
@@ -105,8 +123,11 @@ export default function ServicesClient({ initialServices, canManage }: { initial
     startTransition(() => router.refresh());
   }
 
+  const categoriesInUse = [...new Set(services.map((s) => s.category).filter(Boolean))].sort();
+
   const visibleServices = services.filter((s) => showInactive || s.is_active);
   const filteredServices = visibleServices.filter((s) => {
+    if (categoryFilter && s.category !== categoryFilter) return false;
     if (!searchQuery.trim()) return true;
     return s.name.toLowerCase().includes(searchQuery.toLowerCase());
   });
@@ -146,6 +167,20 @@ export default function ServicesClient({ initialServices, canManage }: { initial
               className="w-full bg-slate-900/80 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none"
             />
           </div>
+          {categoriesInUse.length > 1 && (
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="bg-slate-900/80 border border-slate-800 rounded-xl py-2.5 px-3 text-sm outline-none text-slate-300"
+            >
+              <option value="">All categories</option>
+              {categoriesInUse.map((c) => (
+                <option key={c} value={c}>
+                  {c.charAt(0).toUpperCase() + c.slice(1)}
+                </option>
+              ))}
+            </select>
+          )}
           <button
             onClick={() => setShowInactive(!showInactive)}
             className={`text-xs px-3 py-2 rounded-xl cursor-pointer ${showInactive ? 'bg-slate-700 text-slate-200' : 'bg-slate-900/80 text-slate-500'}`}
@@ -219,6 +254,46 @@ export default function ServicesClient({ initialServices, canManage }: { initial
                   className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
                 />
               </div>
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Unit</label>
+                <select
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  disabled={submitting}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50 capitalize"
+                >
+                  {UNIT_OPTIONS.map((u) => (
+                    <option key={u} value={u} className="capitalize">
+                      {u}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  disabled={submitting}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50 capitalize"
+                >
+                  {CATEGORY_OPTIONS.map((c) => (
+                    <option key={c} value={c} className="capitalize">
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">SAC Code (optional)</label>
+                <input
+                  value={hsnSacCode}
+                  onChange={(e) => setHsnSacCode(e.target.value)}
+                  disabled={submitting}
+                  placeholder="e.g. 998714"
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50 font-mono"
+                />
+              </div>
             </div>
             <div className="flex gap-2">
               <button
@@ -243,7 +318,7 @@ export default function ServicesClient({ initialServices, canManage }: { initial
           {visibleServices.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-sm">No services yet — add your first one above.</div>
           ) : filteredServices.length === 0 ? (
-            <div className="p-8 text-center text-slate-500 text-sm">No services match "{searchQuery}".</div>
+            <div className="p-8 text-center text-slate-500 text-sm">No services match your search/filter.</div>
           ) : (
             <div className="divide-y divide-slate-800/50">
               {filteredServices.map((s) => (
@@ -254,9 +329,12 @@ export default function ServicesClient({ initialServices, canManage }: { initial
                       {!s.is_active && <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 shrink-0">Inactive</span>}
                     </div>
                     {s.description && <div className="text-xs text-slate-500 mt-0.5 truncate">{s.description}</div>}
-                    {s.discount_percent > 0 && <div className="text-xs text-emerald-400 mt-0.5">{s.discount_percent}% default discount</div>}
+                    <div className="text-xs mt-0.5 flex gap-2 flex-wrap">
+                      {s.discount_percent > 0 && <span className="text-emerald-400">{s.discount_percent}% default discount</span>}
+                      {s.hsn_sac_code && <span className="text-slate-500 font-mono">SAC {s.hsn_sac_code}</span>}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 text-sm font-mono shrink-0">
+                  <div className="flex items-center gap-4 text-sm font-mono shrink-0">
                     <span className="flex items-center gap-1 text-slate-500">
                       <Clock className="w-3.5 h-3.5" /> {s.est_duration_minutes}m
                     </span>

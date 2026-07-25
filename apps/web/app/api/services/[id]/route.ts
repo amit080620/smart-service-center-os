@@ -48,6 +48,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       ...(parsed.data.discountPercent !== undefined && { discount_percent: parsed.data.discountPercent }),
       ...(parsed.data.estDurationMinutes !== undefined && { est_duration_minutes: parsed.data.estDurationMinutes }),
       ...(parsed.data.category !== undefined && { category: parsed.data.category }),
+      ...(parsed.data.hsnSacCode !== undefined && { hsn_sac_code: parsed.data.hsnSacCode }),
+      ...(parsed.data.unit !== undefined && { unit: parsed.data.unit }),
       ...(parsed.data.isActive !== undefined && { is_active: parsed.data.isActive }),
       updated_at: new Date().toISOString()
     })

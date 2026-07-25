@@ -51,7 +51,9 @@ export const serviceSchema = z.object({
   baseCost: z.number().min(0, 'Cost cannot be negative.'),
   discountPercent: z.number().min(0).max(100).optional().default(0),
   estDurationMinutes: z.number().int().min(0).optional().default(60),
-  category: z.string().trim().optional().default('general')
+  category: z.string().trim().optional().default('general'),
+  hsnSacCode: z.string().trim().optional().default(''),
+  unit: z.string().trim().optional().default('piece')
 });
 export type ServiceInput = z.infer<typeof serviceSchema>;
 export const updateServiceSchema = serviceSchema.partial().extend({
@@ -66,7 +68,9 @@ export const partSchema = z.object({
   category: z.string().trim().optional().default('general'),
   supplierId: z.string().uuid().optional().nullable(),
   unitCost: z.number().min(0, 'Cost cannot be negative.'),
-  discountPercent: z.number().min(0).max(100).optional().default(0)
+  discountPercent: z.number().min(0).max(100).optional().default(0),
+  hsnSacCode: z.string().trim().optional().default(''),
+  unit: z.string().trim().optional().default('piece')
 });
 export type PartInput = z.infer<typeof partSchema>;
 export const updatePartSchema = partSchema.partial().extend({

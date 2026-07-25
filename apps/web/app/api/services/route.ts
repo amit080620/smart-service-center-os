@@ -59,6 +59,8 @@ export async function POST(req: NextRequest) {
       discount_percent: parsed.data.discountPercent,
       est_duration_minutes: parsed.data.estDurationMinutes,
       category: parsed.data.category,
+      hsn_sac_code: parsed.data.hsnSacCode,
+      unit: parsed.data.unit,
       is_active: true
     })
     .select()
