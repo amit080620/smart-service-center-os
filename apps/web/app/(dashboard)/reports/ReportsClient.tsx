@@ -139,6 +139,34 @@ export default function ReportsClient({ report }: { report: ReportData }) {
     router.push(`/reports?from=${start}&to=${end}`);
   }
 
+  // Which preset (if any) matches the range actually applied right now
+  // (report.fromDate/toDate, from the URL) — not the date-input values,
+  // which change as someone types before hitting Apply. This is what
+  // decides which button gets the active highlight.
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const weekStart = (() => {
+    const now = new Date();
+    const day = now.getDay();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((day + 6) % 7));
+    return monday.toISOString().slice(0, 10);
+  })();
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+  const lastMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().slice(0, 10);
+  const lastMonthEnd = new Date(new Date().getFullYear(), new Date().getMonth(), 0).toISOString().slice(0, 10);
+
+  let activePreset: 'today' | 'week' | 'month' | 'lastMonth' | null = null;
+  if (report.fromDate === todayStr && report.toDate === todayStr) activePreset = 'today';
+  else if (report.fromDate === weekStart && report.toDate === todayStr) activePreset = 'week';
+  else if (report.fromDate === monthStart && report.toDate === todayStr) activePreset = 'month';
+  else if (report.fromDate === lastMonthStart && report.toDate === lastMonthEnd) activePreset = 'lastMonth';
+
+  function presetClass(key: typeof activePreset) {
+    return activePreset === key
+      ? 'bg-amber-500 text-slate-950 font-medium text-sm px-3 py-2 rounded-lg cursor-pointer'
+      : 'bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm px-3 py-2 rounded-lg cursor-pointer';
+  }
+
   const sameDay = report.fromDate === report.toDate;
   const rangeLabel = sameDay
     ? new Date(report.fromDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -218,16 +246,16 @@ export default function ReportsClient({ report }: { report: ReportData }) {
           <button onClick={applyRange} className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-medium px-4 py-2 rounded-lg cursor-pointer">
             Apply
           </button>
-          <button onClick={setToday} className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm px-3 py-2 rounded-lg cursor-pointer">
+          <button onClick={setToday} className={presetClass('today')}>
             Today
           </button>
-          <button onClick={setThisWeek} className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm px-3 py-2 rounded-lg cursor-pointer">
+          <button onClick={setThisWeek} className={presetClass('week')}>
             This Week
           </button>
-          <button onClick={setThisMonth} className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm px-3 py-2 rounded-lg cursor-pointer">
+          <button onClick={setThisMonth} className={presetClass('month')}>
             This Month
           </button>
-          <button onClick={setLastMonth} className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm px-3 py-2 rounded-lg cursor-pointer">
+          <button onClick={setLastMonth} className={presetClass('lastMonth')}>
             Last Month
           </button>
         </div>
