@@ -2,7 +2,8 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, IndianRupee, Phone } from 'lucide-react';
+import { ArrowLeft, IndianRupee, Phone, MessageCircle } from 'lucide-react';
+import { buildWhatsAppLink, rechargeReminderMessage } from '@/lib/whatsapp';
 
 interface Org {
   id: string;
@@ -130,6 +131,16 @@ export default function OrgDetailClient({
           <div className="text-right">
             <div className="text-xs font-mono text-slate-500 uppercase">Current Balance</div>
             <div className={`text-3xl font-bold ${balance < 0 ? 'text-red-400' : 'text-amber-500'}`}>₹{balance.toLocaleString('en-IN')}</div>
+            {org.contact_phone && buildWhatsAppLink(org.contact_phone, rechargeReminderMessage(org.name, balance)) && (
+              <a
+                href={buildWhatsAppLink(org.contact_phone, rechargeReminderMessage(org.name, balance))!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg cursor-pointer"
+              >
+                <MessageCircle className="w-3.5 h-3.5" /> Send WhatsApp Reminder
+              </a>
+            )}
           </div>
         </div>
 

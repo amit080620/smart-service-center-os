@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { ShieldCheck, Search, Settings2 } from 'lucide-react';
+import { ShieldCheck, Search, Settings2, MessageCircle } from 'lucide-react';
+import { buildWhatsAppLink, rechargeReminderMessage } from '@/lib/whatsapp';
 
 interface OrgRow {
   id: string;
@@ -76,18 +77,30 @@ export default function PlatformAdminClient({ orgs, adminName }: { orgs: OrgRow[
           ) : (
             <div className="divide-y divide-slate-800/50">
               {filtered.map((o) => (
-                <a key={o.id} href={`/platform-admin/orgs/${o.id}`} className="p-4 flex items-center justify-between gap-3 hover:bg-slate-900/40">
-                  <div className="min-w-0">
+                <div key={o.id} className="p-4 flex items-center justify-between gap-3 hover:bg-slate-900/40">
+                  <a href={`/platform-admin/orgs/${o.id}`} className="min-w-0 flex-1 cursor-pointer">
                     <div className="font-semibold text-slate-200 truncate">{o.name}</div>
                     <div className="text-xs text-slate-500 mt-0.5">{o.contact_phone || 'No phone on file'}</div>
-                  </div>
+                  </a>
                   <div className="flex items-center gap-3 shrink-0">
                     <span className={`font-mono font-semibold ${o.balance < 0 ? 'text-red-400' : 'text-slate-300'}`}>
                       ₹{o.balance.toLocaleString('en-IN')}
                     </span>
                     <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${STATUS_STYLES[o.status]}`}>{o.status}</span>
+                    {o.status !== 'active' && o.contact_phone && buildWhatsAppLink(o.contact_phone, rechargeReminderMessage(o.name, o.balance)) && (
+                      <a
+                        href={buildWhatsAppLink(o.contact_phone, rechargeReminderMessage(o.name, o.balance))!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-emerald-400 hover:text-emerald-300 cursor-pointer p-1"
+                        title="Send WhatsApp Reminder"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </a>
+                    )}
                   </div>
-                </a>
+                </div>
               ))}
             </div>
           )}
