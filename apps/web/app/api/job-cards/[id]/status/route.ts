@@ -70,6 +70,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (parsed.data.status === 'approved') {
     updates.approved_by = session.employee.id;
     updates.approved_at = new Date().toISOString();
+    // Snapshot the estimate as it stands right now — this is what gets
+    // compared against the final invoice total later, so it needs to be
+    // locked in at approval time rather than left as a moving target
+    // that keeps changing as more line items get added afterward.
+    updates.approved_estimate_amount = job.estimated_cost;
   }
   if (parsed.data.status === 'delivered') {
     updates.delivered_at = new Date().toISOString();

@@ -73,7 +73,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       customer_phone: customer?.phone ?? '',
       customer_address: customer?.address ?? '',
       vehicle_label: vehicle ? `${vehicle.make} ${vehicle.model}` : 'Unknown',
-      plate_number: vehicle?.plate_number ?? ''
+      plate_number: vehicle?.plate_number ?? '',
+      // The estimate as it stood when a manager approved it — compared
+      // against this invoice's actual total on the invoice page, so it's
+      // visible at a glance whether the final bill matched what the
+      // customer originally agreed to.
+      approved_estimate_amount: job?.approved_estimate_amount ?? null
     },
     services,
     parts,

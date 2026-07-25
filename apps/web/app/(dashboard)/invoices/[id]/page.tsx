@@ -22,6 +22,7 @@ interface InvoiceDetail {
   balance_due: number;
   status: string;
   due_date: string;
+  approved_estimate_amount: number | null;
 }
 interface LineItem {
   id: string;
@@ -323,6 +324,37 @@ export default function InvoiceDetailPage() {
             )}
           </div>
         </div>
+
+        {/* Estimate vs Actual */}
+        {invoice.approved_estimate_amount !== null && (
+          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
+            <div className="text-xs font-mono text-slate-500 uppercase mb-2">Estimate vs Actual</div>
+            <div className="grid grid-cols-3 gap-3 text-sm">
+              <div>
+                <div className="text-xs text-slate-500">Approved Estimate</div>
+                <div className="font-mono text-slate-300 font-semibold">
+                  ₹{invoice.approved_estimate_amount.toLocaleString('en-IN')}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-slate-500">Actual (Invoice)</div>
+                <div className="font-mono text-amber-500 font-semibold">₹{invoice.total.toLocaleString('en-IN')}</div>
+              </div>
+              <div>
+                <div className="text-xs text-slate-500">Difference</div>
+                {(() => {
+                  const diff = invoice.total - invoice.approved_estimate_amount;
+                  return (
+                    <div className={`font-mono font-semibold ${diff > 0 ? 'text-red-400' : diff < 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
+                      {diff > 0 ? '+' : ''}
+                      {diff.toLocaleString('en-IN')}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Record payment */}
         {invoice.balance_due > 0 && (

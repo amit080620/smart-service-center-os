@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ClipboardList, Wrench, Package, Plus, Clock, Trash2 } from 'lucide-react';
+import { ClipboardList, Wrench, Package, Plus, Clock, Trash2, Printer } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
 
 interface JobDetail {
@@ -315,6 +315,15 @@ export default function JobCardDetailPage() {
             {STATUS_LABELS[job.status] ?? job.status}
           </span>
         </div>
+
+        <a
+          href={`/print/estimates/${job.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium px-4 py-2 rounded-xl items-center gap-2 cursor-pointer transition-all"
+        >
+          <Printer className="w-4 h-4" /> Print Estimate for Customer
+        </a>
 
         {error && (
           <div className="bg-red-950/40 border border-red-900 text-red-200 text-xs rounded-xl p-3">{error}</div>

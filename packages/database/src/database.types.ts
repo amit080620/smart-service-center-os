@@ -341,6 +341,7 @@ export interface Database {
           created_by: string;
           approved_by: string | null;
           approved_at: string | null;
+          approved_estimate_amount: number | null;
           estimated_cost: number;
           final_cost: number;
           paid: boolean;
@@ -367,6 +368,7 @@ export interface Database {
           created_by: string;
           approved_by?: string | null;
           approved_at?: string | null;
+          approved_estimate_amount?: number | null;
           estimated_cost?: number;
           final_cost?: number;
           paid?: boolean;
