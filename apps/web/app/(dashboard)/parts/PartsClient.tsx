@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useTransition, type FormEvent } from 'react';
+import { useState, useTransition, useRef, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Package, Plus, IndianRupee, Search, Pencil, Ban, RotateCcw } from 'lucide-react';
+import { Package, Plus, IndianRupee, Search, Pencil, Ban, RotateCcw, Download, Upload } from 'lucide-react';
 import FAB from '@/components/FAB';
 
 const UNIT_OPTIONS = ['piece', 'litre', 'kg', 'meter', 'box', 'set', 'pair'];
@@ -39,6 +39,9 @@ export default function PartsClient({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const parts = initialParts;
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [showInactive, setShowInactive] = useState(false);
@@ -67,6 +70,30 @@ export default function PartsClient({
     setCategory('general');
     setShowForm(false);
     setEditingId(null);
+  }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setImportResult(null);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/api/parts/import', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error?.message ?? 'Could not import CSV.');
+      setImporting(false);
+      return;
+    }
+
+    setImportResult(data);
+    setImporting(false);
+    if (importInputRef.current) importInputRef.current.value = '';
+    startTransition(() => router.refresh());
   }
 
   function startEdit(p: Part) {
@@ -170,6 +197,37 @@ export default function PartsClient({
         </div>
         {canManage && (
           <FAB onClick={() => (showForm && !editingId ? resetForm() : (resetForm(), setShowForm(true)))} label="New Part" />
+        )}
+
+        <div className="flex gap-2 flex-wrap items-center">
+          <a
+            href="/api/parts/export"
+            className="text-xs bg-slate-900/80 border border-slate-800 text-slate-300 px-3 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer hover:bg-slate-800"
+          >
+            <Download className="w-3.5 h-3.5" /> Export CSV
+          </a>
+          {canManage && (
+            <>
+              <input ref={importInputRef} type="file" accept=".csv" onChange={handleImportFile} className="hidden" />
+              <button
+                onClick={() => importInputRef.current?.click()}
+                disabled={importing}
+                className="text-xs bg-slate-900/80 border border-slate-800 text-slate-300 px-3 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer hover:bg-slate-800 disabled:opacity-50"
+              >
+                <Upload className="w-3.5 h-3.5" /> {importing ? 'Importing...' : 'Import CSV'}
+              </button>
+            </>
+          )}
+        </div>
+
+        {importResult && (
+          <div className="bg-emerald-950/30 border border-emerald-900/50 text-emerald-200 text-xs rounded-xl p-3">
+            Imported {importResult.created} new part{importResult.created === 1 ? '' : 's'}
+            {importResult.skipped > 0 && ` · skipped ${importResult.skipped} (duplicate SKU or missing name/SKU)`}
+            {importResult.errors.length > 0 && (
+              <div className="mt-1 text-red-300">{importResult.errors.join('; ')}</div>
+            )}
+          </div>
         )}
 
         <div className="flex gap-2 flex-wrap">
