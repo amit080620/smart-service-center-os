@@ -3,6 +3,7 @@
 import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Package, Plus, IndianRupee, Search, Pencil, Ban, RotateCcw } from 'lucide-react';
+import FAB from '@/components/FAB';
 
 interface Part {
   id: string;
@@ -139,13 +140,16 @@ export default function PartsClient({
           {canManage && (
             <button
               onClick={() => (showForm && !editingId ? resetForm() : (resetForm(), setShowForm(true)))}
-              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all"
+              className="hidden md:flex bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2 rounded-xl items-center gap-2 cursor-pointer transition-all"
             >
               <Plus className="w-4 h-4" />
               New Part
             </button>
           )}
         </div>
+        {canManage && (
+          <FAB onClick={() => (showForm && !editingId ? resetForm() : (resetForm(), setShowForm(true)))} label="New Part" />
+        )}
 
         <div className="flex gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[200px]">

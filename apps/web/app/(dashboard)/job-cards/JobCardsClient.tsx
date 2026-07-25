@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ClipboardList, Plus, Gauge, Search } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
 import BrandModelPicker from '@/components/BrandModelPicker';
+import FAB from '@/components/FAB';
 
 interface JobCard {
   id: string;
@@ -199,12 +200,13 @@ export default function JobCardsClient({
           <button
             onClick={() => setShowForm(!showForm)}
             disabled={customers.length === 0}
-            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="hidden md:flex bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2 rounded-xl items-center gap-2 cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
             New Job Card
           </button>
         </div>
+        <FAB onClick={() => setShowForm(!showForm)} disabled={customers.length === 0} label="New Job Card" />
 
         <div className="relative">
           <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />

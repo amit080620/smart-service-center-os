@@ -102,11 +102,10 @@ export default function JobCardDetailPage() {
   const [nextServiceMonths, setNextServiceMonths] = useState('');
   const [nextServiceKm, setNextServiceKm] = useState('');
 
-  const [showServiceForm, setShowServiceForm] = useState(false);
-  const [showPartForm, setShowPartForm] = useState(false);
-  const [selectedServiceId, setSelectedServiceId] = useState('');
-  const [selectedPartId, setSelectedPartId] = useState('');
-  const [partQty, setPartQty] = useState('1');
+  const [showAddItemForm, setShowAddItemForm] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState('');
+  const [selectedItemType, setSelectedItemType] = useState<'service' | 'part' | null>(null);
+  const [addItemQty, setAddItemQty] = useState('1');
 
   async function loadAll() {
     setLoading(true);
@@ -180,42 +179,27 @@ export default function JobCardDetailPage() {
     window.location.href = `/invoices/${data.invoice.id}`;
   }
 
-  async function handleAddService() {
-    const svc = serviceCatalog.find((s) => s.id === selectedServiceId);
-    if (!svc) return;
+  async function handleAddItem() {
+    if (!selectedItemId || !selectedItemType) return;
+    const catalog = selectedItemType === 'service' ? serviceCatalog : partCatalog;
+    const item = catalog.find((c) => c.id === selectedItemId);
+    if (!item) return;
+    const unitCost = selectedItemType === 'service' ? item.base_cost : item.unit_cost;
     setError(null);
     const res = await fetch(`/api/job-cards/${jobId}/line-items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'service', itemId: svc.id, qty: 1, unitCost: svc.base_cost })
+      body: JSON.stringify({ type: selectedItemType, itemId: item.id, qty: Number(addItemQty) || 1, unitCost })
     });
     const data = await res.json();
     if (!res.ok) {
-      setError(data.error?.message ?? 'Could not add service.');
+      setError(data.error?.message ?? 'Could not add item.');
       return;
     }
-    setSelectedServiceId('');
-    setShowServiceForm(false);
-    loadAll();
-  }
-
-  async function handleAddPart() {
-    const part = partCatalog.find((p) => p.id === selectedPartId);
-    if (!part) return;
-    setError(null);
-    const res = await fetch(`/api/job-cards/${jobId}/line-items`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'part', itemId: part.id, qty: Number(partQty), unitCost: part.unit_cost })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error?.message ?? 'Could not add part.');
-      return;
-    }
-    setSelectedPartId('');
-    setPartQty('1');
-    setShowPartForm(false);
+    setSelectedItemId('');
+    setSelectedItemType(null);
+    setAddItemQty('1');
+    setShowAddItemForm(false);
     loadAll();
   }
 
@@ -550,46 +534,76 @@ export default function JobCardDetailPage() {
           )}
         </div>
 
+        {/* Unified add — searches services and parts together, one flow
+            instead of two separate buttons/forms to choose between. */}
+        {canEditLineItems && (
+          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
+            <button
+              onClick={() => setShowAddItemForm(!showAddItemForm)}
+              className="w-full p-4 flex items-center justify-between text-sm font-semibold cursor-pointer hover:bg-slate-900/40"
+            >
+              <span className="flex items-center gap-2">
+                <Plus className="w-4 h-4 text-amber-500" /> Add Service or Part
+              </span>
+              {showAddItemForm && <span className="text-xs text-slate-500">Cancel</span>}
+            </button>
+            {showAddItemForm && (
+              <div className="p-4 border-t border-slate-800 space-y-3">
+                {job.status === 'completed' && canEditCompleted && (
+                  <div className="text-xs text-amber-300 bg-amber-950/20 rounded-lg p-2">
+                    Editing a completed job — changes will update the invoice too.
+                  </div>
+                )}
+                <SearchableSelect
+                  items={[
+                    ...serviceCatalog.map((s) => ({ id: `service:${s.id}`, realId: s.id, type: 'service' as const, name: s.name, price: s.base_cost })),
+                    ...partCatalog.map((p) => ({ id: `part:${p.id}`, realId: p.id, type: 'part' as const, name: p.name, price: p.unit_cost, sku: p.sku }))
+                  ]}
+                  value={selectedItemId && selectedItemType ? `${selectedItemType}:${selectedItemId}` : ''}
+                  onChange={(compositeId) => {
+                    const [type, realId] = compositeId.split(':');
+                    setSelectedItemType(type === 'service' ? 'service' : 'part');
+                    setSelectedItemId(realId ?? '');
+                  }}
+                  getLabel={(item) => item.name}
+                  getSubLabel={(item) => `${item.type === 'part' ? (item as any).sku + ' · ' : ''}₹${item.price} ${item.type === 'service' ? '(Service)' : '(Part)'}`}
+                  getSearchText={(item) => `${item.name} ${item.type === 'part' ? (item as any).sku ?? '' : ''}`}
+                  placeholder="Search services or parts (by name or part no)..."
+                />
+                <div className="flex items-center gap-2">
+                  <div className="w-24">
+                    <label className="block text-xs font-mono text-slate-400 mb-1 uppercase">Qty</label>
+                    <input
+                      type="number"
+                      value={addItemQty}
+                      onChange={(e) => setAddItemQty(e.target.value)}
+                      min="1"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none"
+                    />
+                  </div>
+                  <button
+                    onClick={handleAddItem}
+                    disabled={!selectedItemId}
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-medium px-4 py-2 rounded-lg cursor-pointer disabled:opacity-50 mt-5"
+                  >
+                    Add to Job
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Services */}
         <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
           <div className="p-4 flex items-center justify-between border-b border-slate-800">
             <h2 className="font-semibold flex items-center gap-2 text-sm">
               <Wrench className="w-4 h-4 text-amber-500" /> Services
             </h2>
-            {canEditLineItems && (
-              <button
-                onClick={() => setShowServiceForm(!showServiceForm)}
-                className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer"
-              >
-                <Plus className="w-3 h-3" /> Add
-              </button>
-            )}
           </div>
           {job.status === 'completed' && canEditCompleted && (
             <div className="px-4 py-2 bg-amber-950/20 text-amber-300 text-xs border-b border-slate-800">
               Editing a completed job — changes will update the invoice too.
-            </div>
-          )}
-          {showServiceForm && (
-            <div className="p-4 border-b border-slate-800 flex gap-2">
-              <div className="flex-1">
-                <SearchableSelect
-                  items={serviceCatalog}
-                  value={selectedServiceId}
-                  onChange={setSelectedServiceId}
-                  getLabel={(s) => s.name}
-                  getSubLabel={(s) => `₹${s.base_cost}`}
-                  getSearchText={(s) => s.name}
-                  placeholder="Search services..."
-                />
-              </div>
-              <button
-                onClick={handleAddService}
-                disabled={!selectedServiceId}
-                className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-medium px-3 py-2 rounded-lg cursor-pointer disabled:opacity-50"
-              >
-                Add
-              </button>
             </div>
           )}
           {services.length === 0 ? (
@@ -639,44 +653,7 @@ export default function JobCardDetailPage() {
             <h2 className="font-semibold flex items-center gap-2 text-sm">
               <Package className="w-4 h-4 text-amber-500" /> Parts
             </h2>
-            {canEditLineItems && (
-              <button
-                onClick={() => setShowPartForm(!showPartForm)}
-                className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer"
-              >
-                <Plus className="w-3 h-3" /> Add
-              </button>
-            )}
           </div>
-          {showPartForm && (
-            <div className="p-4 border-b border-slate-800 flex gap-2 flex-wrap">
-              <div className="flex-1 min-w-[180px]">
-                <SearchableSelect
-                  items={partCatalog}
-                  value={selectedPartId}
-                  onChange={setSelectedPartId}
-                  getLabel={(p) => p.name}
-                  getSubLabel={(p) => `${p.sku ? p.sku + ' · ' : ''}₹${p.unit_cost}`}
-                  getSearchText={(p) => `${p.name} ${p.sku ?? ''}`}
-                  placeholder="Search by name or part no..."
-                />
-              </div>
-              <input
-                type="number"
-                value={partQty}
-                onChange={(e) => setPartQty(e.target.value)}
-                min="1"
-                className="w-20 bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none"
-              />
-              <button
-                onClick={handleAddPart}
-                disabled={!selectedPartId}
-                className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-medium px-3 py-2 rounded-lg cursor-pointer disabled:opacity-50"
-              >
-                Add
-              </button>
-            </div>
-          )}
           {parts.length === 0 ? (
             <div className="p-4 text-center text-slate-500 text-xs">No parts added yet.</div>
           ) : (

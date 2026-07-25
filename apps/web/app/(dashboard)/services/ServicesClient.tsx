@@ -3,6 +3,7 @@
 import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Wrench, Plus, Clock, IndianRupee, Search, Pencil, Ban, RotateCcw } from 'lucide-react';
+import FAB from '@/components/FAB';
 
 interface Service {
   id: string;
@@ -124,13 +125,16 @@ export default function ServicesClient({ initialServices, canManage }: { initial
           {canManage && (
             <button
               onClick={() => (showForm ? resetForm() : (resetForm(), setShowForm(true)))}
-              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all"
+              className="hidden md:flex bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2 rounded-xl items-center gap-2 cursor-pointer transition-all"
             >
               <Plus className="w-4 h-4" />
               New Service
             </button>
           )}
         </div>
+        {canManage && (
+          <FAB onClick={() => (showForm ? resetForm() : (resetForm(), setShowForm(true)))} label="New Service" />
+        )}
 
         <div className="flex gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[200px]">

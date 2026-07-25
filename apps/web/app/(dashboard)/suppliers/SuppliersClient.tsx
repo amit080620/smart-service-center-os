@@ -3,6 +3,7 @@
 import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Truck, Plus, IndianRupee, ChevronDown, ChevronUp } from 'lucide-react';
+import FAB from '@/components/FAB';
 
 interface Supplier {
   id: string;
@@ -143,13 +144,14 @@ export default function SuppliersClient({
           {canManage && (
             <button
               onClick={() => setShowSupplierForm(!showSupplierForm)}
-              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all"
+              className="hidden md:flex bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2 rounded-xl items-center gap-2 cursor-pointer transition-all"
             >
               <Plus className="w-4 h-4" />
               New Supplier
             </button>
           )}
         </div>
+        {canManage && <FAB onClick={() => setShowSupplierForm(!showSupplierForm)} label="New Supplier" />}
 
         {totalOwed > 0 && (
           <div className="bg-red-950/30 border border-red-900/50 rounded-2xl p-4 flex items-center justify-between">

@@ -3,6 +3,7 @@
 import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Car, Plus, Gauge, Search, Hash } from 'lucide-react';
+import FAB from '@/components/FAB';
 import BrandModelPicker from '@/components/BrandModelPicker';
 
 interface Vehicle {
@@ -108,12 +109,13 @@ export default function VehiclesClient({ initialVehicles, initialCustomers }: { 
           <button
             onClick={() => setShowForm(!showForm)}
             disabled={customers.length === 0}
-            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="hidden md:flex bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2 rounded-xl items-center gap-2 cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
             New Vehicle
           </button>
         </div>
+        <FAB onClick={() => setShowForm(!showForm)} disabled={customers.length === 0} label="New Vehicle" />
 
         <div className="relative">
           <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />

@@ -3,6 +3,7 @@
 import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserPlus, Plus, Copy, Check, X } from 'lucide-react';
+import FAB from '@/components/FAB';
 
 interface Employee {
   id: string;
@@ -132,13 +133,14 @@ export default function EmployeesClient({
           {canManage && (
             <button
               onClick={() => setShowForm(!showForm)}
-              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all"
+              className="hidden md:flex bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2 rounded-xl items-center gap-2 cursor-pointer transition-all"
             >
               <Plus className="w-4 h-4" />
               New Employee
             </button>
           )}
         </div>
+        {canManage && <FAB onClick={() => setShowForm(!showForm)} label="New Employee" />}
 
         {newCredentials && (
           <div className="bg-emerald-950/30 border border-emerald-900/50 rounded-2xl p-5 animate-fadeIn">

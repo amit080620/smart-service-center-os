@@ -3,6 +3,7 @@
 import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users, Plus, Phone, Mail, Search } from 'lucide-react';
+import FAB from '@/components/FAB';
 
 interface Customer {
   id: string;
@@ -77,13 +78,13 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all"
+            className="hidden md:flex bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2 rounded-xl items-center gap-2 cursor-pointer transition-all"
           >
             <Plus className="w-4 h-4" />
             New Customer
           </button>
         </div>
-
+        <FAB onClick={() => setShowForm(!showForm)} label="New Customer" />
         <div className="relative">
           <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
