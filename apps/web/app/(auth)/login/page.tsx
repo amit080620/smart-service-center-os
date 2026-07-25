@@ -44,7 +44,18 @@ export default function LoginPage() {
       return;
     }
 
-    router.push('/dashboard');
+    // Platform-admin-only accounts (like the Super Admin's) have no
+    // employee/org record at all — /dashboard would have nothing to show
+    // them. Check right here, once, instead of hardcoding /dashboard for
+    // every login regardless of which kind of account it is.
+    const checkRes = await fetch('/api/platform-admin/check');
+    const checkData = await checkRes.json().catch(() => ({ isPlatformAdmin: false }));
+
+    if (checkData.isPlatformAdmin) {
+      router.push('/platform-admin');
+    } else {
+      router.push('/dashboard');
+    }
     router.refresh();
   }
 
