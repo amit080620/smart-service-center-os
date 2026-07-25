@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
       name: parsed.data.name,
       description: parsed.data.description,
       base_cost: parsed.data.baseCost,
+      discount_percent: parsed.data.discountPercent,
       est_duration_minutes: parsed.data.estDurationMinutes,
       category: parsed.data.category,
       is_active: true

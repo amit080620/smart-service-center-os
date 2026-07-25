@@ -49,20 +49,30 @@ export const serviceSchema = z.object({
   name: z.string().trim().min(1, 'Service name is required.'),
   description: z.string().trim().optional().default(''),
   baseCost: z.number().min(0, 'Cost cannot be negative.'),
+  discountPercent: z.number().min(0).max(100).optional().default(0),
   estDurationMinutes: z.number().int().min(0).optional().default(60),
   category: z.string().trim().optional().default('general')
 });
 export type ServiceInput = z.infer<typeof serviceSchema>;
+export const updateServiceSchema = serviceSchema.partial().extend({
+  isActive: z.boolean().optional()
+});
+export type UpdateServiceInput = z.infer<typeof updateServiceSchema>;
 
 export const partSchema = z.object({
   name: z.string().trim().min(1, 'Part name is required.'),
   sku: z.string().trim().min(1, 'SKU is required.'),
   description: z.string().trim().optional().default(''),
   category: z.string().trim().optional().default('general'),
-  supplier: z.string().trim().optional().default(''),
-  unitCost: z.number().min(0, 'Cost cannot be negative.')
+  supplierId: z.string().uuid().optional().nullable(),
+  unitCost: z.number().min(0, 'Cost cannot be negative.'),
+  discountPercent: z.number().min(0).max(100).optional().default(0)
 });
 export type PartInput = z.infer<typeof partSchema>;
+export const updatePartSchema = partSchema.partial().extend({
+  isActive: z.boolean().optional()
+});
+export type UpdatePartInput = z.infer<typeof updatePartSchema>;
 
 export const createJobCardSchema = z.object({
   customerId: z.string().uuid('Select a valid customer.'),

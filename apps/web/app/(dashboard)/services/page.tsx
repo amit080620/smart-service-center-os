@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSessionContext } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
+import { canManageServicesCatalog } from '@smartbizos/permissions';
 import ServicesClient from './ServicesClient';
 
 export default async function ServicesPage() {
@@ -12,9 +13,9 @@ export default async function ServicesPage() {
   const admin = createSupabaseAdminClient();
   const { data: services } = await admin
     .from('services')
-    .select('id, name, description, base_cost, est_duration_minutes, category')
+    .select('id, name, description, base_cost, discount_percent, est_duration_minutes, category, is_active')
     .eq('org_id', session.employee.org_id)
     .order('name');
 
-  return <ServicesClient initialServices={services ?? []} />;
+  return <ServicesClient initialServices={services ?? []} canManage={canManageServicesCatalog(session.employee.role)} />;
 }

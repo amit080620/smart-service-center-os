@@ -103,6 +103,7 @@ export interface Service {
   name: string;
   description: string;
   base_cost: number;
+  discount_percent: number;
   est_duration_minutes: number;
   category: string;
   is_active: boolean;
@@ -118,7 +119,9 @@ export interface Part {
   description: string;
   category: string;
   supplier: string;
+  supplier_id: string | null;
   unit_cost: number;
+  discount_percent: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -262,6 +265,30 @@ export interface SupplierPayment {
   method: string;
   paid_at: string;
   recorded_by: string;
+}
+
+export interface PlatformUsageCharge {
+  id: string;
+  org_id: string;
+  job_card_id: string;
+  amount: number;
+  charge_date: string;
+  billed: boolean;
+  bill_id: string | null;
+  created_at: string;
+}
+
+export interface PlatformBill {
+  id: string;
+  org_id: string;
+  bill_date: string;
+  job_count: number;
+  total_amount: number;
+  status: string;
+  razorpay_order_id: string | null;
+  razorpay_payment_id: string | null;
+  paid_at: string | null;
+  created_at: string;
 }
 
 export interface SessionContext {

@@ -20,8 +20,23 @@ export async function GET() {
   if (error) {
     return NextResponse.json({ error: { code: 'DB_ERROR', message: error.message } }, { status: 500 });
   }
+  if (!parts || parts.length === 0) {
+    return NextResponse.json([]);
+  }
 
-  return NextResponse.json(parts ?? []);
+  // Populate supplier name alongside the id — the "vendor" people
+  // actually want to see, not just a raw uuid.
+  const supplierIds = [...new Set(parts.map((p) => p.supplier_id).filter((id): id is string => Boolean(id)))];
+  const { data: suppliers } = supplierIds.length
+    ? await admin.from('suppliers').select('id, name').in('id', supplierIds)
+    : { data: [] };
+
+  const populated = parts.map((p) => ({
+    ...p,
+    supplier_name: suppliers?.find((s) => s.id === p.supplier_id)?.name ?? null
+  }));
+
+  return NextResponse.json(populated);
 }
 
 export async function POST(req: NextRequest) {
@@ -63,6 +78,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (parsed.data.supplierId) {
+    const { data: supplier } = await admin
+      .from('suppliers')
+      .select('id')
+      .eq('id', parsed.data.supplierId)
+      .eq('org_id', session.employee.org_id)
+      .maybeSingle();
+    if (!supplier) {
+      return NextResponse.json({ error: { code: 'NOT_FOUND', message: 'Supplier not found in your organization.' } }, { status: 404 });
+    }
+  }
+
   const { data: part, error } = await admin
     .from('parts')
     .insert({
@@ -71,8 +98,9 @@ export async function POST(req: NextRequest) {
       sku: parsed.data.sku,
       description: parsed.data.description,
       category: parsed.data.category,
-      supplier: parsed.data.supplier,
+      supplier_id: parsed.data.supplierId ?? null,
       unit_cost: parsed.data.unitCost,
+      discount_percent: parsed.data.discountPercent,
       is_active: true
     })
     .select()
