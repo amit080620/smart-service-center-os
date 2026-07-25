@@ -103,7 +103,7 @@ export default async function InvoicePrintPage({
     // ---- THERMAL (58/80mm receipt) ----
     return (
       <div className="bg-white min-h-screen text-black">
-        <PrintActions />
+        <PrintActions backHref={`/invoices/${invoice.id}`} />
         <div className="mx-auto font-mono text-[11px] leading-tight p-2" style={{ width: '72mm' }}>
           <div className="text-center">
             {org.logo_url && (
@@ -193,7 +193,7 @@ export default async function InvoicePrintPage({
   // ---- A4 ----
   return (
     <div className="bg-white min-h-screen text-black">
-      <PrintActions />
+      <PrintActions backHref={`/invoices/${invoice.id}`} />
       <div className="mx-auto p-10 max-w-[210mm] text-sm">
         <div className="flex justify-between items-start border-b-2 border-black pb-4">
           <div className="flex items-start gap-4">

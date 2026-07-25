@@ -62,7 +62,7 @@ export default async function EstimatePrintPage({ params }: { params: Promise<{ 
 
   return (
     <div className="bg-white min-h-screen text-black">
-      <PrintActions />
+      <PrintActions backHref={`/job-cards/${job.id}`} />
       <div className="mx-auto p-10 max-w-[210mm] text-sm">
         <div className="flex justify-between items-start border-b-2 border-black pb-4">
           <div className="flex items-start gap-4">
