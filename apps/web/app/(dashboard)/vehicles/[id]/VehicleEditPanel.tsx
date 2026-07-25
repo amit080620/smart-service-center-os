@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil } from 'lucide-react';
+import { Pencil, Ban } from 'lucide-react';
 import BrandModelPicker from '@/components/BrandModelPicker';
 import { CAR_BRANDS, BIKE_BRANDS } from '@/lib/vehicleData';
 
@@ -57,14 +57,37 @@ export default function VehicleEditPanel({ vehicle }: { vehicle: VehicleEditData
     router.refresh();
   }
 
+  async function handleDeactivate() {
+    if (!confirm('Deactivate this vehicle? It will be hidden from lists, but job history stays intact.')) return;
+    setSubmitting(true);
+    setError(null);
+    const res = await fetch(`/api/vehicles/${vehicle.id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error?.message ?? 'Could not deactivate vehicle.');
+      setSubmitting(false);
+      return;
+    }
+    router.push('/vehicles');
+  }
+
   if (!editing) {
     return (
-      <button
-        onClick={() => setEditing(true)}
-        className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer"
-      >
-        <Pencil className="w-4 h-4" /> Edit Vehicle Details
-      </button>
+      <div className="flex gap-2 flex-wrap">
+        <button
+          onClick={() => setEditing(true)}
+          className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer"
+        >
+          <Pencil className="w-4 h-4" /> Edit Vehicle Details
+        </button>
+        <button
+          onClick={handleDeactivate}
+          disabled={submitting}
+          className="bg-slate-800 hover:bg-red-950/40 text-slate-400 hover:text-red-300 text-sm font-medium px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer disabled:opacity-50"
+        >
+          <Ban className="w-4 h-4" /> Deactivate
+        </button>
+      </div>
     );
   }
 

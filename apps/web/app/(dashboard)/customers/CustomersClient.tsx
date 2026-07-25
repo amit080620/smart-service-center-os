@@ -2,7 +2,7 @@
 
 import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Plus, Phone, Mail, Search, Pencil } from 'lucide-react';
+import { Users, Plus, Phone, Mail, Search, Pencil, Ban } from 'lucide-react';
 import FAB from '@/components/FAB';
 
 interface Customer {
@@ -54,6 +54,18 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
     setPhone(c.phone);
     setEmail(c.email ?? '');
     setShowForm(true);
+  }
+
+  async function handleDeactivate(c: Customer) {
+    if (!confirm(`Deactivate ${c.first_name} ${c.last_name}? They'll be hidden from lists, but past records stay intact.`)) return;
+    setError(null);
+    const res = await fetch(`/api/customers/${c.id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error?.message ?? 'Could not deactivate customer.');
+      return;
+    }
+    startTransition(() => router.refresh());
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -211,6 +223,9 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
                   </div>
                   <button onClick={() => startEdit(c)} className="text-slate-500 hover:text-amber-400 cursor-pointer p-1 shrink-0">
                     <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => handleDeactivate(c)} className="text-slate-500 hover:text-red-400 cursor-pointer p-1 shrink-0" title="Deactivate">
+                    <Ban className="w-3.5 h-3.5" />
                   </button>
                 </div>
               ))}

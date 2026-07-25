@@ -74,3 +74,34 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   return NextResponse.json(updated);
 }
+
+// Soft delete only — same reasoning as customers: a vehicle already
+// linked to job cards and invoices can't be hard-deleted without
+// breaking that history.
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getSessionContext();
+  if (!session) {
+    return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Not signed in.' } }, { status: 401 });
+  }
+  const { id } = await params;
+
+  const admin = createSupabaseAdminClient();
+  const { data: existing } = await admin
+    .from('vehicles')
+    .select('id')
+    .eq('id', id)
+    .eq('org_id', session.employee.org_id)
+    .is('deleted_at', null)
+    .maybeSingle();
+
+  if (!existing) {
+    return NextResponse.json({ error: { code: 'NOT_FOUND', message: 'Vehicle not found in your organization.' } }, { status: 404 });
+  }
+
+  const { error } = await admin.from('vehicles').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+  if (error) {
+    return NextResponse.json({ error: { code: 'DB_ERROR', message: error.message } }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}

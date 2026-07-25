@@ -40,6 +40,8 @@ export default function InventoryClient({
 
   // Per-row adjust state — which row's adjust form is open, and its values.
   const [adjustingId, setAdjustingId] = useState<string | null>(null);
+  const [editingReorderId, setEditingReorderId] = useState<string | null>(null);
+  const [reorderLevelValue, setReorderLevelValue] = useState('');
   const [adjustQty, setAdjustQty] = useState('');
   const [adjustType, setAdjustType] = useState<'received' | 'adjusted'>('received');
   const [adjustNotes, setAdjustNotes] = useState('');
@@ -92,6 +94,22 @@ export default function InventoryClient({
     setAdjustingId(null);
     setAdjustQty('');
     setAdjustNotes('');
+    startTransition(() => router.refresh());
+  }
+
+  async function handleSaveReorderLevel(inventoryId: string) {
+    setError(null);
+    const res = await fetch(`/api/inventory/${inventoryId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reorderLevel: Number(reorderLevelValue) || 0 })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error?.message ?? 'Could not update reorder level.');
+      return;
+    }
+    setEditingReorderId(null);
     startTransition(() => router.refresh());
   }
 
@@ -207,7 +225,42 @@ export default function InventoryClient({
                         )}
                       </div>
                       <div className="text-xs text-slate-500 mt-0.5 font-mono truncate">
-                        {row.sku} · reorder at {row.reorder_level}
+                        {row.sku} ·{' '}
+                        {editingReorderId === row.id ? (
+                          <span className="inline-flex items-center gap-1">
+                            reorder at{' '}
+                            <input
+                              type="number"
+                              value={reorderLevelValue}
+                              onChange={(e) => setReorderLevelValue(e.target.value)}
+                              min="0"
+                              autoFocus
+                              className="w-14 bg-slate-900 border border-amber-500 rounded px-1 py-0.5 text-slate-200"
+                            />
+                            <button
+                              onClick={() => handleSaveReorderLevel(row.id)}
+                              className="text-amber-400 hover:text-amber-300 cursor-pointer"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingReorderId(null)}
+                              className="text-slate-500 hover:text-slate-300 cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setEditingReorderId(row.id);
+                              setReorderLevelValue(String(row.reorder_level));
+                            }}
+                            className="underline decoration-dotted cursor-pointer hover:text-amber-400"
+                          >
+                            reorder at {row.reorder_level}
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
