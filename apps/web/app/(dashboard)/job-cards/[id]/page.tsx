@@ -18,6 +18,7 @@ interface JobDetail {
   estimated_cost: number;
   final_cost: number;
   assigned_technician_id: string | null;
+  technician_accepted_at: string | null;
   technician_name: string | null;
 }
 interface Technician {
@@ -506,19 +507,30 @@ export default function JobCardDetailPage() {
                 .
               </div>
             ) : (
-              <select
-                value={job.assigned_technician_id ?? ''}
-                onChange={(e) => handleAssignTechnician(e.target.value)}
-                disabled={assigningTech}
-                className="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg py-2 px-3 text-sm outline-none disabled:opacity-50"
-              >
-                <option value="">Unassigned</option>
-                {technicians.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.full_name}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  value={job.assigned_technician_id ?? ''}
+                  onChange={(e) => handleAssignTechnician(e.target.value)}
+                  disabled={assigningTech}
+                  className="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg py-2 px-3 text-sm outline-none disabled:opacity-50"
+                >
+                  <option value="">Unassigned</option>
+                  {technicians.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.full_name}
+                    </option>
+                  ))}
+                </select>
+                {job.assigned_technician_id && (
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full font-medium ${
+                      job.technician_accepted_at ? 'bg-emerald-900/50 text-emerald-300' : 'bg-amber-900/50 text-amber-300'
+                    }`}
+                  >
+                    {job.technician_accepted_at ? 'Accepted' : 'Waiting for accept...'}
+                  </span>
+                )}
+              </div>
             )}
           </div>
           {job.notes && (

@@ -136,6 +136,7 @@ export interface JobCard {
   job_number: string;
   status: JobStatus;
   assigned_technician_id: string | null;
+  technician_accepted_at: string | null;
   created_by: string;
   approved_by: string | null;
   approved_at: string | null;

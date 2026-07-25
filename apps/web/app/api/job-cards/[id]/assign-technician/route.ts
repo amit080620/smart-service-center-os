@@ -45,7 +45,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const { data: updated, error } = await admin
     .from('job_cards')
-    .update({ assigned_technician_id: parsed.data.technicianId, updated_at: new Date().toISOString() })
+    .update({
+      assigned_technician_id: parsed.data.technicianId,
+      // Reset acceptance whenever the assignment changes (including
+      // unassigning) — a fresh assignment always needs a fresh accept,
+      // otherwise switching technicians could silently carry over a
+      // stale "accepted" state from whoever was assigned before.
+      technician_accepted_at: null,
+      updated_at: new Date().toISOString()
+    })
     .eq('id', jobId)
     .select()
     .single();
