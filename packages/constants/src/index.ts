@@ -49,6 +49,22 @@ export const JOB_STATUS = {
 } as const;
 export type JobStatus = (typeof JOB_STATUS)[keyof typeof JOB_STATUS];
 
+// The normal, expected order a job moves through — used to tell an
+// ordinary "next stage" click apart from a manager overriding the
+// status directly (backward, skipping stages, etc.), which needs a
+// stricter permission check. 'cancelled' isn't in the sequence since it
+// can happen from anywhere, not as a "next stage."
+export const JOB_STATUS_FLOW: JobStatus[] = [
+  JOB_STATUS.RECEIVED,
+  JOB_STATUS.DIAGNOSING,
+  JOB_STATUS.IN_PROGRESS,
+  JOB_STATUS.AWAITING_PARTS,
+  JOB_STATUS.PENDING_APPROVAL,
+  JOB_STATUS.APPROVED,
+  JOB_STATUS.COMPLETED,
+  JOB_STATUS.DELIVERED
+];
+
 export const TRIAL_PERIOD_DAYS = 14;
 export const DEFAULT_MAX_BRANCHES = 1;
 export const DEFAULT_MAX_EMPLOYEES = 5;

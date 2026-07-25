@@ -82,6 +82,9 @@ export default function JobCardDetailPage() {
   const [services, setServices] = useState<LineService[]>([]);
   const [parts, setParts] = useState<LinePart[]>([]);
   const [canEditCompleted, setCanEditCompleted] = useState(false);
+  const [canOverrideStatus, setCanOverrideStatus] = useState(false);
+  const [overrideStatusValue, setOverrideStatusValue] = useState('');
+  const [showOverride, setShowOverride] = useState(false);
   const [statusLogs, setStatusLogs] = useState<StatusLog[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [assigningTech, setAssigningTech] = useState(false);
@@ -95,6 +98,7 @@ export default function JobCardDetailPage() {
   const [discountType, setDiscountType] = useState<'amount' | 'percentage'>('amount');
   const [discountValue, setDiscountValue] = useState('0');
   const [gstAmount, setGstAmount] = useState('0');
+  const [gstType, setGstType] = useState<'amount' | 'percentage'>('amount');
 
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [showPartForm, setShowPartForm] = useState(false);
@@ -117,6 +121,7 @@ export default function JobCardDetailPage() {
       setStatusLogs(data.statusLogs);
       setTechnicians(data.technicians ?? []);
       setCanEditCompleted(data.canEditCompleted ?? false);
+      setCanOverrideStatus(data.canOverrideStatus ?? false);
     }
     if (servicesRes.ok) setServiceCatalog(await servicesRes.json());
     if (partsRes.ok) setPartCatalog(await partsRes.json());
@@ -159,6 +164,7 @@ export default function JobCardDetailPage() {
       body: JSON.stringify({
         discountType,
         discountValue: Number(discountValue) || 0,
+        gstType,
         gstAmount: Number(gstAmount) || 0
       })
     });
@@ -342,28 +348,42 @@ export default function JobCardDetailPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">GST (₹)</label>
-                <input
-                  type="number"
-                  value={gstAmount}
-                  onChange={(e) => setGstAmount(e.target.value)}
-                  min="0"
-                  disabled={statusUpdating}
-                  placeholder="0"
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
-                />
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">GST</label>
+                <div className="flex gap-1.5">
+                  <input
+                    type="number"
+                    value={gstAmount}
+                    onChange={(e) => setGstAmount(e.target.value)}
+                    min="0"
+                    disabled={statusUpdating}
+                    placeholder="0"
+                    className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
+                  />
+                  <select
+                    value={gstType}
+                    onChange={(e) => setGstType(e.target.value as 'amount' | 'percentage')}
+                    disabled={statusUpdating}
+                    className="bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-2 text-sm outline-none disabled:opacity-50"
+                  >
+                    <option value="amount">₹</option>
+                    <option value="percentage">%</option>
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Invoice Total</label>
                 <div className="bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-sm font-mono text-amber-500 font-semibold">
                   ₹
-                  {(
-                    job.estimated_cost -
-                    (discountType === 'percentage'
-                      ? Math.round(job.estimated_cost * ((Number(discountValue) || 0) / 100))
-                      : Number(discountValue) || 0) +
-                    (Number(gstAmount) || 0)
-                  ).toLocaleString('en-IN')}
+                  {(() => {
+                    const afterDiscount =
+                      job.estimated_cost -
+                      (discountType === 'percentage'
+                        ? Math.round(job.estimated_cost * ((Number(discountValue) || 0) / 100))
+                        : Number(discountValue) || 0);
+                    const gst =
+                      gstType === 'percentage' ? Math.round(afterDiscount * ((Number(gstAmount) || 0) / 100)) : Number(gstAmount) || 0;
+                    return (afterDiscount + gst).toLocaleString('en-IN');
+                  })()}
                 </div>
               </div>
             </div>
@@ -388,6 +408,47 @@ export default function JobCardDetailPage() {
             >
               {statusUpdating ? 'Updating...' : `Mark as ${STATUS_LABELS[nextStatus]}`}
             </button>
+          </div>
+        )}
+
+        {/* Admin override — jump to any status, not just the next one in
+            sequence. Only management roles see/can use this; the server
+            enforces the same rule independently. */}
+        {canOverrideStatus && !['delivered', 'cancelled'].includes(job.status) && (
+          <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-4">
+            <button
+              onClick={() => setShowOverride(!showOverride)}
+              className="text-xs text-slate-500 hover:text-slate-300 cursor-pointer"
+            >
+              {showOverride ? 'Hide' : 'Change status manually (admin)'}
+            </button>
+            {showOverride && (
+              <div className="mt-3 flex items-center gap-2 flex-wrap animate-fadeIn">
+                <select
+                  value={overrideStatusValue}
+                  onChange={(e) => setOverrideStatusValue(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none"
+                >
+                  <option value="">Select status...</option>
+                  {STATUS_FLOW.filter((s) => s !== 'completed').map((s) => (
+                    <option key={s} value={s}>
+                      {STATUS_LABELS[s]}
+                    </option>
+                  ))}
+                  <option value="cancelled">Cancelled</option>
+                </select>
+                <button
+                  onClick={() => {
+                    if (overrideStatusValue) handleStatusChange(overrideStatusValue);
+                  }}
+                  disabled={statusUpdating || !overrideStatusValue}
+                  className="bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium px-3 py-2 rounded-lg cursor-pointer disabled:opacity-50"
+                >
+                  Apply
+                </button>
+                <span className="text-xs text-slate-600">"Completed" must go through the invoice button above.</span>
+              </div>
+            )}
           </div>
         )}
 

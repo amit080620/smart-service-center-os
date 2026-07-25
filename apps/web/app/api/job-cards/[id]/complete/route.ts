@@ -69,8 +69,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'Discount cannot exceed the subtotal.' } }, { status: 400 });
   }
 
-  const tax = parsed.data.gstAmount;
-  const total = subtotal - discountAmount + tax;
+  const afterDiscount = subtotal - discountAmount;
+  const tax =
+    parsed.data.gstType === 'percentage' ? Math.round(afterDiscount * (parsed.data.gstAmount / 100)) : parsed.data.gstAmount;
+  const total = afterDiscount + tax;
 
   // Sequential invoice number scoped to this org + current year. Uses the
   // max existing sequence number (not array length) so a voided invoice

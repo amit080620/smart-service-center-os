@@ -3,6 +3,7 @@ import { getSessionContext } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
 import { updateJobStatusSchema } from '@smartbizos/validation';
 import { canApproveJobCard } from '@smartbizos/permissions';
+import { JOB_STATUS_FLOW } from '@smartbizos/constants';
 import type { Database } from '@smartbizos/database';
 
 type JobCardUpdate = Database['public']['Tables']['job_cards']['Update'];
@@ -42,6 +43,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (parsed.data.status === 'approved' && !canApproveJobCard(session.employee.role)) {
     return NextResponse.json(
       { error: { code: 'FORBIDDEN', message: 'Only branch managers and org owners can approve job card estimates.' } },
+      { status: 403 }
+    );
+  }
+
+  // Any status change that ISN'T the ordinary "move to next stage" step
+  // (going backward, skipping stages, re-opening after a later stage) is
+  // treated as a manual override and restricted to management roles —
+  // regular staff can still always advance a job normally.
+  const oldIndex = JOB_STATUS_FLOW.indexOf(job.status as (typeof JOB_STATUS_FLOW)[number]);
+  const newIndex = JOB_STATUS_FLOW.indexOf(parsed.data.status as (typeof JOB_STATUS_FLOW)[number]);
+  const isOrdinaryNextStep = oldIndex >= 0 && newIndex === oldIndex + 1;
+  if (!isOrdinaryNextStep && !canApproveJobCard(session.employee.role)) {
+    return NextResponse.json(
+      { error: { code: 'FORBIDDEN', message: 'Only branch managers and org owners can change status out of normal sequence.' } },
       { status: 403 }
     );
   }

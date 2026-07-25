@@ -181,6 +181,7 @@ export type RecordSupplierPaymentInput = z.infer<typeof recordSupplierPaymentSch
 export const completeJobSchema = z.object({
   discountType: z.enum(['amount', 'percentage']).optional().default('amount'),
   discountValue: z.number().min(0, 'Discount cannot be negative.').optional().default(0),
+  gstType: z.enum(['amount', 'percentage']).optional().default('amount'),
   gstAmount: z.number().min(0, 'GST cannot be negative.').optional().default(0)
 });
 export type CompleteJobInput = z.infer<typeof completeJobSchema>;
