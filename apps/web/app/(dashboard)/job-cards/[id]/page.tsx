@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { ClipboardList, Wrench, Package, Plus, Clock, Trash2 } from 'lucide-react';
+import SearchableSelect from '@/components/SearchableSelect';
 
 interface JobDetail {
   id: string;
@@ -48,6 +49,7 @@ interface Catalog {
   name: string;
   base_cost?: number;
   unit_cost?: number;
+  sku?: string;
 }
 
 const STATUS_FLOW = [
@@ -459,18 +461,17 @@ export default function JobCardDetailPage() {
           )}
           {showServiceForm && (
             <div className="p-4 border-b border-slate-800 flex gap-2">
-              <select
-                value={selectedServiceId}
-                onChange={(e) => setSelectedServiceId(e.target.value)}
-                className="flex-1 bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none"
-              >
-                <option value="">Select a service...</option>
-                {serviceCatalog.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} — ₹{s.base_cost}
-                  </option>
-                ))}
-              </select>
+              <div className="flex-1">
+                <SearchableSelect
+                  items={serviceCatalog}
+                  value={selectedServiceId}
+                  onChange={setSelectedServiceId}
+                  getLabel={(s) => s.name}
+                  getSubLabel={(s) => `₹${s.base_cost}`}
+                  getSearchText={(s) => s.name}
+                  placeholder="Search services..."
+                />
+              </div>
               <button
                 onClick={handleAddService}
                 disabled={!selectedServiceId}
@@ -537,19 +538,18 @@ export default function JobCardDetailPage() {
             )}
           </div>
           {showPartForm && (
-            <div className="p-4 border-b border-slate-800 flex gap-2">
-              <select
-                value={selectedPartId}
-                onChange={(e) => setSelectedPartId(e.target.value)}
-                className="flex-1 bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm outline-none"
-              >
-                <option value="">Select a part...</option>
-                {partCatalog.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} — ₹{p.unit_cost}
-                  </option>
-                ))}
-              </select>
+            <div className="p-4 border-b border-slate-800 flex gap-2 flex-wrap">
+              <div className="flex-1 min-w-[180px]">
+                <SearchableSelect
+                  items={partCatalog}
+                  value={selectedPartId}
+                  onChange={setSelectedPartId}
+                  getLabel={(p) => p.name}
+                  getSubLabel={(p) => `${p.sku ? p.sku + ' · ' : ''}₹${p.unit_cost}`}
+                  getSearchText={(p) => `${p.name} ${p.sku ?? ''}`}
+                  placeholder="Search by name or part no..."
+                />
+              </div>
               <input
                 type="number"
                 value={partQty}
