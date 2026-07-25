@@ -102,6 +102,7 @@ export default function OrgDetailClient({ org, balance, transactions }: { org: O
                 onChange={(e) => setAmount(e.target.value)}
                 required
                 min="0.01"
+                step="0.01"
                 disabled={submitting}
                 className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
               />

@@ -495,6 +495,7 @@ export default function SuppliersClient({
                                         value={paymentAmount}
                                         onChange={(e) => setPaymentAmount(e.target.value)}
                                         min="0.01"
+                                        step="0.01"
                                         max={b.balance_due}
                                         placeholder="Amount"
                                         className="w-24 bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-2 text-xs outline-none"
