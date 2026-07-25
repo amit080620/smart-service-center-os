@@ -51,10 +51,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       { status: 403 }
     );
   }
+  if ((parsed.data.fullName !== undefined || parsed.data.phone !== undefined) && !canManageEmployees(session.employee.role)) {
+    return NextResponse.json(
+      { error: { code: 'FORBIDDEN', message: 'You do not have permission to edit employee details.' } },
+      { status: 403 }
+    );
+  }
 
   const { data: updated, error } = await admin
     .from('employees')
     .update({
+      ...(parsed.data.fullName !== undefined && { full_name: parsed.data.fullName }),
+      ...(parsed.data.phone !== undefined && { phone: parsed.data.phone }),
       ...(parsed.data.role !== undefined && { role: parsed.data.role }),
       ...(parsed.data.status !== undefined && { status: parsed.data.status }),
       updated_at: new Date().toISOString()

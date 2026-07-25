@@ -153,6 +153,8 @@ export const createEmployeeSchema = z.object({
 export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>;
 
 export const updateEmployeeSchema = z.object({
+  fullName: z.string().trim().min(2).optional(),
+  phone: z.string().trim().optional(),
   role: z.enum(['super_admin', 'branch_manager', 'hr', 'accountant', 'parts_clerk', 'technician', 'reception']).optional(),
   status: z.enum(['active', 'inactive']).optional()
 });

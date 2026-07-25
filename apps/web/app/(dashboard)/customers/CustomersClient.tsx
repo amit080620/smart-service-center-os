@@ -2,7 +2,7 @@
 
 import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Plus, Phone, Mail, Search } from 'lucide-react';
+import { Users, Plus, Phone, Mail, Search, Pencil } from 'lucide-react';
 import FAB from '@/components/FAB';
 
 interface Customer {
@@ -17,6 +17,7 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -36,32 +37,52 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
     );
   });
 
-  async function handleAddCustomer(e: FormEvent) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-
-    const res = await fetch('/api/customers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ firstName, lastName, phone, email })
-    });
-    const data = await res.json();
-
-    if (!res.ok) {
-      setError(data.error?.message ?? 'Could not add customer.');
-      setSubmitting(false);
-      return;
-    }
-
+  function resetForm() {
     setFirstName('');
     setLastName('');
     setPhone('');
     setEmail('');
     setShowForm(false);
+    setEditingId(null);
+    setError(null);
+  }
+
+  function startEdit(c: Customer) {
+    setEditingId(c.id);
+    setFirstName(c.first_name);
+    setLastName(c.last_name);
+    setPhone(c.phone);
+    setEmail(c.email ?? '');
+    setShowForm(true);
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    const body = { firstName, lastName, phone, email };
+    const res = editingId
+      ? await fetch(`/api/customers/${editingId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        })
+      : await fetch('/api/customers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error?.message ?? 'Could not save customer.');
+      setSubmitting(false);
+      return;
+    }
+
+    resetForm();
     setSubmitting(false);
-    // Re-runs the Server Component's data fetch and re-renders with fresh
-    // data — no separate client-side list state to keep in sync.
     startTransition(() => router.refresh());
   }
 
@@ -77,14 +98,14 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
             <p className="text-sm text-slate-500 mt-1">Customer records for your service center.</p>
           </div>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => (showForm ? resetForm() : (resetForm(), setShowForm(true)))}
             className="hidden md:flex bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2 rounded-xl items-center gap-2 cursor-pointer transition-all"
           >
             <Plus className="w-4 h-4" />
             New Customer
           </button>
         </div>
-        <FAB onClick={() => setShowForm(!showForm)} label="New Customer" />
+        <FAB onClick={() => (showForm ? resetForm() : (resetForm(), setShowForm(true)))} label="New Customer" />
         <div className="relative">
           <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -97,7 +118,7 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
 
         {showForm && (
           <form
-            onSubmit={handleAddCustomer}
+            onSubmit={handleSubmit}
             className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4 animate-fadeIn"
           >
             {error && (
@@ -145,13 +166,22 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
                 />
               </div>
             </div>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2.5 rounded-xl cursor-pointer disabled:opacity-50"
-            >
-              {submitting ? 'Saving...' : 'Save Customer'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2.5 rounded-xl cursor-pointer disabled:opacity-50"
+              >
+                {submitting ? 'Saving...' : editingId ? 'Save Changes' : 'Save Customer'}
+              </button>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="text-slate-500 hover:text-slate-300 px-4 py-2.5 text-sm cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
           </form>
         )}
 
@@ -163,20 +193,25 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
           ) : (
             <div className="divide-y divide-slate-800/50">
               {filteredCustomers.map((c) => (
-                <div key={c.id} className="p-4 hover:bg-slate-900/40 transition-all">
-                  <div className="font-semibold text-slate-200 truncate">
-                    {c.first_name} {c.last_name}
-                  </div>
-                  <div className="flex items-center gap-4 mt-1 text-xs text-slate-500 font-mono flex-wrap">
-                    <span className="flex items-center gap-1">
-                      <Phone className="w-3 h-3" /> {c.phone}
-                    </span>
-                    {c.email && (
-                      <span className="flex items-center gap-1 min-w-0">
-                        <Mail className="w-3 h-3 shrink-0" /> <span className="truncate">{c.email}</span>
+                <div key={c.id} className="p-4 flex items-center justify-between gap-3 hover:bg-slate-900/40 transition-all">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-slate-200 truncate">
+                      {c.first_name} {c.last_name}
+                    </div>
+                    <div className="flex items-center gap-4 mt-1 text-xs text-slate-500 font-mono flex-wrap">
+                      <span className="flex items-center gap-1">
+                        <Phone className="w-3 h-3" /> {c.phone}
                       </span>
-                    )}
+                      {c.email && (
+                        <span className="flex items-center gap-1 min-w-0">
+                          <Mail className="w-3 h-3 shrink-0" /> <span className="truncate">{c.email}</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  <button onClick={() => startEdit(c)} className="text-slate-500 hover:text-amber-400 cursor-pointer p-1 shrink-0">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               ))}
             </div>

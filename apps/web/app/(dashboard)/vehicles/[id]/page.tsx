@@ -2,6 +2,7 @@ import { redirect, notFound } from 'next/navigation';
 import { getSessionContext } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
 import { Car, Gauge, Calendar, Wrench } from 'lucide-react';
+import VehicleEditPanel from './VehicleEditPanel';
 
 const STATUS_LABELS: Record<string, string> = {
   received: 'Received',
@@ -69,6 +70,18 @@ export default async function VehicleHistoryPage({ params }: { params: Promise<{
             {customer?.phone && ` · ${customer.phone}`}
           </p>
         </div>
+
+        <VehicleEditPanel
+          vehicle={{
+            id: vehicle.id,
+            plate_number: vehicle.plate_number,
+            vin: vehicle.vin,
+            make: vehicle.make,
+            model: vehicle.model,
+            year: vehicle.year,
+            color: vehicle.color
+          }}
+        />
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4">

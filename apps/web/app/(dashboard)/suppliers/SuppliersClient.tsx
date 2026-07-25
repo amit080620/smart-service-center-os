@@ -2,7 +2,7 @@
 
 import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Truck, Plus, IndianRupee, ChevronDown, ChevronUp } from 'lucide-react';
+import { Truck, Plus, IndianRupee, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 import FAB from '@/components/FAB';
 
 interface Supplier {
@@ -49,6 +49,7 @@ export default function SuppliersClient({
   const bills = initialBills;
 
   const [showSupplierForm, setShowSupplierForm] = useState(false);
+  const [editingSupplierId, setEditingSupplierId] = useState<string | null>(null);
   const [expandedSupplier, setExpandedSupplier] = useState<string | null>(null);
   const [showBillForm, setShowBillForm] = useState<string | null>(null);
   const [showPaymentForm, setShowPaymentForm] = useState<string | null>(null);
@@ -66,25 +67,45 @@ export default function SuppliersClient({
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
 
-  async function handleAddSupplier(e: FormEvent) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    const res = await fetch('/api/suppliers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, contactPhone, address })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error?.message ?? 'Could not add supplier.');
-      setSubmitting(false);
-      return;
-    }
+  function startEditSupplier(s: Supplier) {
+    setEditingSupplierId(s.id);
+    setName(s.name);
+    setContactPhone(s.contact_phone);
+    setAddress(s.address);
+    setShowSupplierForm(true);
+  }
+
+  function resetSupplierForm() {
     setName('');
     setContactPhone('');
     setAddress('');
     setShowSupplierForm(false);
+    setEditingSupplierId(null);
+  }
+
+  async function handleSubmitSupplier(e: FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    const body = { name, contactPhone, address };
+    const res = editingSupplierId
+      ? await fetch(`/api/suppliers/${editingSupplierId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        })
+      : await fetch('/api/suppliers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error?.message ?? 'Could not save supplier.');
+      setSubmitting(false);
+      return;
+    }
+    resetSupplierForm();
     setSubmitting(false);
     startTransition(() => router.refresh());
   }
@@ -143,7 +164,7 @@ export default function SuppliersClient({
           </div>
           {canManage && (
             <button
-              onClick={() => setShowSupplierForm(!showSupplierForm)}
+              onClick={() => (showSupplierForm ? resetSupplierForm() : (resetSupplierForm(), setShowSupplierForm(true)))}
               className="hidden md:flex bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2 rounded-xl items-center gap-2 cursor-pointer transition-all"
             >
               <Plus className="w-4 h-4" />
@@ -151,7 +172,12 @@ export default function SuppliersClient({
             </button>
           )}
         </div>
-        {canManage && <FAB onClick={() => setShowSupplierForm(!showSupplierForm)} label="New Supplier" />}
+        {canManage && (
+          <FAB
+            onClick={() => (showSupplierForm ? resetSupplierForm() : (resetSupplierForm(), setShowSupplierForm(true)))}
+            label="New Supplier"
+          />
+        )}
 
         {totalOwed > 0 && (
           <div className="bg-red-950/30 border border-red-900/50 rounded-2xl p-4 flex items-center justify-between">
@@ -166,7 +192,7 @@ export default function SuppliersClient({
 
         {showSupplierForm && (
           <form
-            onSubmit={handleAddSupplier}
+            onSubmit={handleSubmitSupplier}
             className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4 animate-fadeIn"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -200,13 +226,22 @@ export default function SuppliersClient({
                 />
               </div>
             </div>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2.5 rounded-xl cursor-pointer disabled:opacity-50"
-            >
-              {submitting ? 'Saving...' : 'Save Supplier'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium px-4 py-2.5 rounded-xl cursor-pointer disabled:opacity-50"
+              >
+                {submitting ? 'Saving...' : editingSupplierId ? 'Save Changes' : 'Save Supplier'}
+              </button>
+              <button
+                type="button"
+                onClick={resetSupplierForm}
+                className="text-slate-500 hover:text-slate-300 px-4 py-2.5 text-sm cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
           </form>
         )}
 
@@ -221,25 +256,35 @@ export default function SuppliersClient({
               const isExpanded = expandedSupplier === s.id;
               return (
                 <div key={s.id} className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
-                  <button
-                    onClick={() => setExpandedSupplier(isExpanded ? null : s.id)}
-                    className="w-full p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-900/40"
-                  >
-                    <div className="min-w-0 flex-1 text-left">
+                  <div className="w-full p-4 flex items-center justify-between gap-3">
+                    <button
+                      onClick={() => setExpandedSupplier(isExpanded ? null : s.id)}
+                      className="min-w-0 flex-1 text-left cursor-pointer"
+                    >
                       <div className="font-semibold text-slate-200 truncate">{s.name}</div>
                       <div className="text-xs text-slate-500 mt-0.5 truncate">
                         {s.contact_phone} {s.bill_count > 0 && `· ${s.bill_count} bill${s.bill_count === 1 ? '' : 's'}`}
                       </div>
-                    </div>
+                    </button>
                     <div className="flex items-center gap-3 shrink-0">
                       {s.total_pending > 0 ? (
                         <span className="font-mono text-red-400 font-semibold">₹{s.total_pending.toLocaleString('en-IN')} due</span>
                       ) : (
                         <span className="text-xs text-emerald-400">Settled</span>
                       )}
-                      {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+                      {canManage && (
+                        <button
+                          onClick={() => startEditSupplier(s)}
+                          className="text-slate-500 hover:text-amber-400 cursor-pointer p-1"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button onClick={() => setExpandedSupplier(isExpanded ? null : s.id)} className="cursor-pointer">
+                        {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+                      </button>
                     </div>
-                  </button>
+                  </div>
 
                   {isExpanded && (
                     <div className="border-t border-slate-800 p-4 space-y-3">
