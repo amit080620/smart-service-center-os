@@ -77,6 +77,7 @@ export default async function EstimatePrintPage({ params }: { params: Promise<{ 
                 {org.contact_phone && <span>Ph: {org.contact_phone}</span>}
                 {org.contact_email && <span className="ml-3">{org.contact_email}</span>}
               </div>
+              {org.settings.gst_number && <div className="text-gray-700 font-mono text-xs mt-0.5">GSTIN: {org.settings.gst_number}</div>}
             </div>
           </div>
           <div className="text-right">

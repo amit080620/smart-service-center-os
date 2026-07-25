@@ -24,6 +24,9 @@ export interface Organization {
     currency: string;
     timezone: string;
     whatsapp_enabled: boolean;
+    gst_number?: string;
+    invoice_footer_text?: string;
+    footer_image_url?: string | null;
     [key: string]: unknown;
   };
   created_at: string;

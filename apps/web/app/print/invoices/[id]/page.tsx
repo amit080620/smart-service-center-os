@@ -111,6 +111,7 @@ export default async function InvoicePrintPage({
             <div className="font-bold text-[13px]">{org.name}</div>
             {org.address && <div>{org.address}</div>}
             {org.contact_phone && <div>Ph: {org.contact_phone}</div>}
+            {org.settings.gst_number && <div>GSTIN: {org.settings.gst_number}</div>}
             <div className="mt-1">--------------------------------</div>
             <div className="font-bold">TAX INVOICE</div>
             <div>--------------------------------</div>
@@ -179,7 +180,7 @@ export default async function InvoicePrintPage({
           )}
           <div className="text-center mt-2">
             <div>--------------------------------</div>
-            <div>Thank you for your business!</div>
+            <div>{org.settings.invoice_footer_text || 'Thank you for your business!'}</div>
             <div className="mt-1">Powered by Smart Service Center OS</div>
           </div>
         </div>
@@ -205,6 +206,7 @@ export default async function InvoicePrintPage({
                 {org.contact_phone && <span>Ph: {org.contact_phone}</span>}
                 {org.contact_email && <span className="ml-3">{org.contact_email}</span>}
               </div>
+              {org.settings.gst_number && <div className="text-gray-700 font-mono text-xs mt-0.5">GSTIN: {org.settings.gst_number}</div>}
             </div>
           </div>
           <div className="text-right">
@@ -310,7 +312,7 @@ export default async function InvoicePrintPage({
         </div>
 
         <div className="mt-16 pt-4 border-t border-gray-300 flex justify-between text-xs text-gray-500">
-          <div>Thank you for your business!</div>
+          <div>{org.settings.invoice_footer_text || 'Thank you for your business!'}</div>
           <div>Authorised Signatory ____________________</div>
         </div>
       </div>
