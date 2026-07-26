@@ -61,11 +61,13 @@ const STATUS_COLORS: Record<string, string> = {
 export default function JobCardsClient({
   initialJobs,
   initialCustomers,
-  initialVehicles
+  initialVehicles,
+  isLimited
 }: {
   initialJobs: JobCard[];
   initialCustomers: Customer[];
   initialVehicles: Vehicle[];
+  isLimited?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -233,6 +235,11 @@ export default function JobCardsClient({
             className="w-full bg-slate-900/80 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none"
           />
         </div>
+        {isLimited && (
+          <p className="text-xs text-slate-500 -mt-2">
+            Showing the most recent 500 job cards. For older ones, open that vehicle's or customer's history page.
+          </p>
+        )}
 
         {customers.length === 0 && (
           <div className="bg-amber-950/30 border border-amber-900/50 text-amber-200 text-sm rounded-xl p-4">

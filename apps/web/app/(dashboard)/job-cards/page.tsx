@@ -10,13 +10,19 @@ export default async function JobCardsPage() {
   }
 
   const admin = createSupabaseAdminClient();
+  // Bounded to the most recent 500 — a shop's day-to-day work is always
+  // in this window; anything older is better found via that vehicle's
+  // or customer's own history page (unbounded, since those are already
+  // scoped to one record instead of the whole org).
+  const JOB_CARDS_LIMIT = 500;
   const [{ data: jobs }, { data: customers }, { data: vehicles }, { data: technicians }] = await Promise.all([
     admin
       .from('job_cards')
       .select('*')
       .eq('org_id', session.employee.org_id)
       .is('deleted_at', null)
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .limit(JOB_CARDS_LIMIT),
     admin
       .from('customers')
       .select('id, first_name, last_name, phone')
@@ -46,6 +52,11 @@ export default async function JobCardsPage() {
   });
 
   return (
-    <JobCardsClient initialJobs={populatedJobs} initialCustomers={customers ?? []} initialVehicles={vehicles ?? []} />
+    <JobCardsClient
+      initialJobs={populatedJobs}
+      initialCustomers={customers ?? []}
+      initialVehicles={vehicles ?? []}
+      isLimited={(jobs ?? []).length >= JOB_CARDS_LIMIT}
+    />
   );
 }

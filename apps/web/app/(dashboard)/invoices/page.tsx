@@ -25,11 +25,16 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
   const { q } = await searchParams;
 
   const admin = createSupabaseAdminClient();
+  // Same bounding as the Job Cards list — most recent 500 covers all
+  // realistic day-to-day lookups; anything older is reachable via that
+  // invoice's job card, or the customer/vehicle history pages.
+  const INVOICES_LIMIT = 500;
   const { data: invoices } = await admin
     .from('invoices')
     .select('*')
     .eq('org_id', session.employee.org_id)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(INVOICES_LIMIT);
 
   let populated: Array<{
     id: string;
@@ -107,6 +112,11 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
             className="w-full bg-slate-900/80 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none"
           />
         </form>
+        {invoices && invoices.length >= INVOICES_LIMIT && (
+          <p className="text-xs text-slate-500 -mt-2">
+            Showing the most recent 500 invoices. For an older one, open it from that job card instead.
+          </p>
+        )}
 
         <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
           {populated.length === 0 ? (
