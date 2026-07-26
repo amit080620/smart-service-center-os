@@ -38,19 +38,40 @@ const NAV_ITEMS = [
   { href: '/invoices', label: 'Billing', icon: Receipt }
 ];
 
-const MORE_ITEMS = [
-  { href: '/vehicles', label: 'Vehicles', icon: Car },
-  { href: '/vehicle-status', label: 'Vehicle Status', icon: Gauge },
-  { href: '/services', label: 'Services', icon: Wrench },
-  { href: '/parts', label: 'Parts', icon: Package },
-  { href: '/inventory', label: 'Inventory', icon: Boxes },
-  { href: '/suppliers', label: 'Suppliers', icon: Truck },
-  { href: '/reports', label: 'Reports', icon: BarChart3 },
-  { href: '/employees', label: 'Employees', icon: UserPlus },
-  { href: '/branches', label: 'Branches', icon: Building2 },
-  { href: '/platform-billing', label: 'Wallet', icon: CreditCard },
-  { href: '/settings', label: 'Settings', icon: Settings }
+const MORE_GROUPS = [
+  {
+    label: 'Operations',
+    items: [
+      { href: '/vehicles', label: 'Vehicles', icon: Car },
+      { href: '/vehicle-status', label: 'Vehicle Status', icon: Gauge }
+    ]
+  },
+  {
+    label: 'Catalog',
+    items: [
+      { href: '/services', label: 'Services', icon: Wrench },
+      { href: '/parts', label: 'Parts', icon: Package },
+      { href: '/inventory', label: 'Inventory', icon: Boxes }
+    ]
+  },
+  {
+    label: 'Business',
+    items: [
+      { href: '/suppliers', label: 'Suppliers', icon: Truck },
+      { href: '/reports', label: 'Reports', icon: BarChart3 },
+      { href: '/platform-billing', label: 'Wallet', icon: CreditCard }
+    ]
+  },
+  {
+    label: 'Admin',
+    items: [
+      { href: '/employees', label: 'Employees', icon: UserPlus },
+      { href: '/branches', label: 'Branches', icon: Building2 },
+      { href: '/settings', label: 'Settings', icon: Settings }
+    ]
+  }
 ];
+const MORE_ITEMS = MORE_GROUPS.flatMap((g) => g.items);
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -77,7 +98,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Desktop top nav — hidden on mobile */}
       <nav className="hidden md:flex items-center justify-between px-6 py-3 border-b border-slate-800 bg-slate-950/95 backdrop-blur sticky top-0 z-40">
         <div className="flex items-center gap-1">
-          {[...NAV_ITEMS, ...MORE_ITEMS].map((item) => {
+          {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
             return (
@@ -93,6 +114,46 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </Link>
             );
           })}
+          <div className="relative">
+            <button
+              onClick={() => setMoreOpen(!moreOpen)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                MORE_ITEMS.some((item) => isActive(item.href)) ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900'
+              }`}
+            >
+              <MoreHorizontal className="w-4 h-4" />
+              More
+            </button>
+            {moreOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} />
+                <div className="absolute top-full left-0 mt-2 w-64 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl p-3 z-50 animate-fadeIn">
+                  {MORE_GROUPS.map((group) => (
+                    <div key={group.label} className="mb-3 last:mb-0">
+                      <div className="text-xs font-mono text-slate-500 uppercase px-2 mb-1">{group.label}</div>
+                      {group.items.map((item) => {
+                        const Icon = item.icon;
+                        const active = isActive(item.href);
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setMoreOpen(false)}
+                            className={`flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all ${
+                              active ? 'bg-amber-500 text-slate-950 font-medium' : 'text-slate-300 hover:bg-slate-800'
+                            }`}
+                          >
+                            <Icon className="w-4 h-4" />
+                            {item.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <BranchSwitcher />
@@ -150,21 +211,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              {MORE_ITEMS.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMoreOpen(false)}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 text-xs font-medium"
-                  >
-                    <Icon className="w-5 h-5 text-amber-500" />
-                    {item.label}
-                  </Link>
-                );
-              })}
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+              {MORE_GROUPS.map((group) => (
+                <div key={group.label}>
+                  <div className="text-xs font-mono text-slate-500 uppercase mb-2">{group.label}</div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMoreOpen(false)}
+                          className="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 text-xs font-medium"
+                        >
+                          <Icon className="w-5 h-5 text-amber-500" />
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
             <button
               onClick={handleLogout}

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getSessionContext } from '@smartbizos/auth';
+import { getSessionContext, getActiveBranchId } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
 import JobCardsClient from './JobCardsClient';
 
@@ -10,6 +10,11 @@ export default async function JobCardsPage() {
   }
 
   const admin = createSupabaseAdminClient();
+  // Scoped to whichever branch is currently active (the switcher, or
+  // the employee's own branch if there's only one) — job cards are
+  // created under a specific branch, so the list should only show that
+  // branch's work, not every branch mixed together.
+  const activeBranchId = await getActiveBranchId(session.employee.org_id, session.employee.branch_id);
   // Bounded to the most recent 500 — a shop's day-to-day work is always
   // in this window; anything older is better found via that vehicle's
   // or customer's own history page (unbounded, since those are already
@@ -20,6 +25,7 @@ export default async function JobCardsPage() {
       .from('job_cards')
       .select('*')
       .eq('org_id', session.employee.org_id)
+      .eq('branch_id', activeBranchId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(JOB_CARDS_LIMIT),

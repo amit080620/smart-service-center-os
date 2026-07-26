@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getSessionContext } from '@smartbizos/auth';
+import { getSessionContext, getActiveBranchId } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
 import { Receipt, IndianRupee, Search } from 'lucide-react';
 
@@ -25,16 +25,26 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
   const { q } = await searchParams;
 
   const admin = createSupabaseAdminClient();
+  // Invoices have no branch_id of their own — scoped to the active
+  // branch via the job card they were generated from, same reasoning
+  // as the Job Cards list itself.
+  const activeBranchId = await getActiveBranchId(session.employee.org_id, session.employee.branch_id);
+  const { data: branchJobs } = await admin.from('job_cards').select('id').eq('org_id', session.employee.org_id).eq('branch_id', activeBranchId);
+  const branchJobIds = (branchJobs ?? []).map((j) => j.id);
+
   // Same bounding as the Job Cards list — most recent 500 covers all
   // realistic day-to-day lookups; anything older is reachable via that
   // invoice's job card, or the customer/vehicle history pages.
   const INVOICES_LIMIT = 500;
-  const { data: invoices } = await admin
-    .from('invoices')
-    .select('*')
-    .eq('org_id', session.employee.org_id)
-    .order('created_at', { ascending: false })
-    .limit(INVOICES_LIMIT);
+  const { data: invoices } = branchJobIds.length
+    ? await admin
+        .from('invoices')
+        .select('*')
+        .eq('org_id', session.employee.org_id)
+        .in('job_id', branchJobIds)
+        .order('created_at', { ascending: false })
+        .limit(INVOICES_LIMIT)
+    : { data: [] };
 
   let populated: Array<{
     id: string;
