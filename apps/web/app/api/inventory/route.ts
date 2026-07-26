@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionContext } from '@smartbizos/auth';
+import { getSessionContext, getActiveBranchId } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
 import { addToInventorySchema } from '@smartbizos/validation';
 import { canManagePartsCatalog } from '@smartbizos/permissions';
@@ -11,11 +11,12 @@ export async function GET() {
   }
 
   const admin = createSupabaseAdminClient();
+  const activeBranchId = await getActiveBranchId(session.employee.org_id, session.employee.branch_id);
   const { data: inventory, error } = await admin
     .from('inventory')
     .select('*')
     .eq('org_id', session.employee.org_id)
-    .eq('branch_id', session.employee.branch_id);
+    .eq('branch_id', activeBranchId);
 
   if (error) {
     return NextResponse.json({ error: { code: 'DB_ERROR', message: error.message } }, { status: 500 });
@@ -80,11 +81,12 @@ export async function POST(req: NextRequest) {
 
   // A part can only be tracked once per branch — check for an existing
   // inventory row before creating a duplicate.
+  const activeBranchId = await getActiveBranchId(session.employee.org_id, session.employee.branch_id);
   const { data: existing } = await admin
     .from('inventory')
     .select('id')
     .eq('org_id', session.employee.org_id)
-    .eq('branch_id', session.employee.branch_id)
+    .eq('branch_id', activeBranchId)
     .eq('part_id', parsed.data.partId)
     .maybeSingle();
   if (existing) {
@@ -98,7 +100,7 @@ export async function POST(req: NextRequest) {
     .from('inventory')
     .insert({
       org_id: session.employee.org_id,
-      branch_id: session.employee.branch_id,
+      branch_id: activeBranchId,
       part_id: parsed.data.partId,
       qty_on_hand: parsed.data.qtyOnHand,
       reorder_level: parsed.data.reorderLevel

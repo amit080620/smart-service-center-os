@@ -97,3 +97,26 @@ export async function hasAnySession(): Promise<boolean> {
   } = await supabase.auth.getUser();
   return Boolean(user);
 }
+
+// Resolves which branch the CURRENT request should act on — the
+// switcher cookie if one is set (and actually belongs to this org),
+// otherwise the employee's own assigned branch. Kept separate from
+// getSessionContext() since not every caller needs branch-switching
+// awareness, and this does an extra cookie + DB round trip.
+export async function getActiveBranchId(orgId: string, fallbackBranchId: string): Promise<string> {
+  const { cookies } = await import('next/headers');
+  const cookieStore = await cookies();
+  const cookieBranchId = cookieStore.get('active_branch_id')?.value;
+  if (!cookieBranchId) return fallbackBranchId;
+
+  const admin = createSupabaseAdminClient();
+  const { data: branch } = await admin
+    .from('branches')
+    .select('id')
+    .eq('id', cookieBranchId)
+    .eq('org_id', orgId)
+    .is('deleted_at', null)
+    .maybeSingle();
+
+  return branch ? branch.id : fallbackBranchId;
+}

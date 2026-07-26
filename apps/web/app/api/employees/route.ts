@@ -67,6 +67,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: { code: 'CONFLICT', message: 'An employee with this email already exists.' } }, { status: 409 });
   }
 
+  // A specific branch can be chosen at creation (relevant once an org
+  // has more than one) — falls back to whoever's creating this
+  // employee's own branch otherwise, same as before this existed.
+  let targetBranchId = session.employee.branch_id;
+  if (parsed.data.branchId) {
+    const { data: branch } = await admin
+      .from('branches')
+      .select('id')
+      .eq('id', parsed.data.branchId)
+      .eq('org_id', session.employee.org_id)
+      .is('deleted_at', null)
+      .maybeSingle();
+    if (!branch) {
+      return NextResponse.json({ error: { code: 'NOT_FOUND', message: 'Branch not found in your organization.' } }, { status: 404 });
+    }
+    targetBranchId = branch.id;
+  }
+
   const tempPassword = generateTempPassword();
   let authUserId: string | null = null;
 
@@ -88,7 +106,7 @@ export async function POST(req: NextRequest) {
       .from('employees')
       .insert({
         org_id: session.employee.org_id,
-        branch_id: session.employee.branch_id,
+        branch_id: targetBranchId,
         user_id: authUserId,
         full_name: parsed.data.fullName,
         role: parsed.data.role,

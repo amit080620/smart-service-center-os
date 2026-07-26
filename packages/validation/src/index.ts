@@ -147,6 +147,7 @@ export const createEmployeeSchema = z.object({
   email: z.string().trim().toLowerCase().email('Enter a valid email address.'),
   phone: z.string().trim().optional().default(''),
   role: z.enum(['super_admin', 'branch_manager', 'hr', 'accountant', 'parts_clerk', 'technician', 'reception']),
+  branchId: z.string().uuid().optional(),
   hireDate: z.string().optional(),
   monthlySalary: z.number().min(0).optional(),
   hourlyRate: z.number().min(0).optional()
@@ -212,3 +213,14 @@ export const updateJobDetailsSchema = z.object({
   insuranceApprovedAmount: z.number().min(0).optional().nullable()
 });
 export type UpdateJobDetailsInput = z.infer<typeof updateJobDetailsSchema>;
+
+export const branchSchema = z.object({
+  name: z.string().trim().min(1, 'Branch name is required.'),
+  address: z.string().trim().optional().default(''),
+  phone: z.string().trim().optional().default('')
+});
+export type BranchInput = z.infer<typeof branchSchema>;
+export const updateBranchSchema = branchSchema.partial().extend({
+  status: z.enum(['active', 'inactive']).optional()
+});
+export type UpdateBranchInput = z.infer<typeof updateBranchSchema>;

@@ -11,16 +11,20 @@ export default async function EmployeesPage() {
   }
 
   const admin = createSupabaseAdminClient();
-  const { data: employees } = await admin
-    .from('employees')
-    .select('id, full_name, email, phone, role, status, hire_date, created_at')
-    .eq('org_id', session.employee.org_id)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: true });
+  const [{ data: employees }, { data: branches }] = await Promise.all([
+    admin
+      .from('employees')
+      .select('id, full_name, email, phone, role, status, hire_date, created_at')
+      .eq('org_id', session.employee.org_id)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true }),
+    admin.from('branches').select('id, name').eq('org_id', session.employee.org_id).eq('status', 'active').is('deleted_at', null)
+  ]);
 
   return (
     <EmployeesClient
       initialEmployees={employees ?? []}
+      branches={branches ?? []}
       canManage={canManageEmployees(session.employee.role)}
       canDeactivate={canDeactivateEmployees(session.employee.role)}
     />

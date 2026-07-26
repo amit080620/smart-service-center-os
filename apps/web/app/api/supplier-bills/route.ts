@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionContext } from '@smartbizos/auth';
+import { getSessionContext, getActiveBranchId } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
 import { supplierBillSchema } from '@smartbizos/validation';
 import { canManagePartsCatalog } from '@smartbizos/permissions';
@@ -134,12 +134,13 @@ export async function POST(req: NextRequest) {
   // Inventory page's "Record New Bill"... except now it's one flow
   // instead of two separate ones. Each line becomes a 'received'
   // transaction referencing this bill for traceability.
+  const activeBranchId = await getActiveBranchId(session.employee.org_id, session.employee.branch_id);
   for (const item of parsed.data.items) {
     const { data: invRow } = await admin
       .from('inventory')
       .select('id, qty_on_hand')
       .eq('org_id', session.employee.org_id)
-      .eq('branch_id', session.employee.branch_id)
+      .eq('branch_id', activeBranchId)
       .eq('part_id', item.partId)
       .maybeSingle();
 
@@ -160,7 +161,7 @@ export async function POST(req: NextRequest) {
         .from('inventory')
         .insert({
           org_id: session.employee.org_id,
-          branch_id: session.employee.branch_id,
+          branch_id: activeBranchId,
           part_id: item.partId,
           qty_on_hand: item.qty,
           reorder_level: 5

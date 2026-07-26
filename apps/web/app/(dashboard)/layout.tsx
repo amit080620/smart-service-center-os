@@ -18,11 +18,13 @@ import {
   Truck,
   CreditCard,
   Gauge,
+  Building2,
   MoreHorizontal,
   X,
   LogOut
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@smartbizos/database';
+import BranchSwitcher from '@/components/BranchSwitcher';
 import { useRouter } from 'next/navigation';
 import AssignmentAlert from '@/components/AssignmentAlert';
 import InstallPrompt from '@/components/InstallPrompt';
@@ -45,6 +47,7 @@ const MORE_ITEMS = [
   { href: '/suppliers', label: 'Suppliers', icon: Truck },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/employees', label: 'Employees', icon: UserPlus },
+  { href: '/branches', label: 'Branches', icon: Building2 },
   { href: '/platform-billing', label: 'Wallet', icon: CreditCard },
   { href: '/settings', label: 'Settings', icon: Settings }
 ];
@@ -91,13 +94,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             );
           })}
         </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-red-400 hover:bg-slate-900 transition-all cursor-pointer"
-        >
-          <LogOut className="w-4 h-4" />
-          Logout
-        </button>
+        <div className="flex items-center gap-2">
+          <BranchSwitcher />
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-red-400 hover:bg-slate-900 transition-all cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+            Logout
+          </button>
+        </div>
       </nav>
 
       {/* Page content — bottom padding on mobile so the fixed tab bar never covers content */}
@@ -137,9 +143,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="absolute bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 rounded-t-2xl p-4 pb-8 animate-fadeIn">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-slate-200">More</h2>
-              <button onClick={() => setMoreOpen(false)} className="text-slate-500 cursor-pointer p-1">
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <BranchSwitcher />
+                <button onClick={() => setMoreOpen(false)} className="text-slate-500 cursor-pointer p-1">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               {MORE_ITEMS.map((item) => {

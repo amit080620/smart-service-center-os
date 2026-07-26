@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getSessionContext } from '@smartbizos/auth';
+import { getSessionContext, getActiveBranchId } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
 import InventoryClient from './InventoryClient';
 
@@ -10,12 +10,13 @@ export default async function InventoryPage() {
   }
 
   const admin = createSupabaseAdminClient();
+  const activeBranchId = await getActiveBranchId(session.employee.org_id, session.employee.branch_id);
   const [{ data: inventory }, { data: parts }] = await Promise.all([
     admin
       .from('inventory')
       .select('*')
       .eq('org_id', session.employee.org_id)
-      .eq('branch_id', session.employee.branch_id),
+      .eq('branch_id', activeBranchId),
     admin.from('parts').select('id, name, sku').eq('org_id', session.employee.org_id).order('name')
   ]);
 

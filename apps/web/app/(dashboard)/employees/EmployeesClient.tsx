@@ -30,10 +30,12 @@ const ASSIGNABLE_ROLES = ['branch_manager', 'super_admin', 'hr', 'accountant', '
 
 export default function EmployeesClient({
   initialEmployees,
+  branches,
   canManage,
   canDeactivate
 }: {
   initialEmployees: Employee[];
+  branches: Array<{ id: string; name: string }>;
   canManage: boolean;
   canDeactivate: boolean;
 }) {
@@ -56,6 +58,7 @@ export default function EmployeesClient({
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState('technician');
+  const [branchId, setBranchId] = useState(branches[0]?.id ?? '');
 
   async function handleAdd(e: FormEvent) {
     e.preventDefault();
@@ -65,7 +68,7 @@ export default function EmployeesClient({
     const res = await fetch('/api/employees', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fullName, email, phone, role })
+      body: JSON.stringify({ fullName, email, phone, role, ...(branches.length > 1 && branchId ? { branchId } : {}) })
     });
     const data = await res.json();
 
@@ -299,6 +302,23 @@ export default function EmployeesClient({
                   ))}
                 </select>
               </div>
+              {branches.length > 1 && (
+                <div>
+                  <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Branch</label>
+                  <select
+                    value={branchId}
+                    onChange={(e) => setBranchId(e.target.value)}
+                    disabled={submitting}
+                    className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
+                  >
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             <button
               type="submit"

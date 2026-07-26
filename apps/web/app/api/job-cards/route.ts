@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionContext } from '@smartbizos/auth';
+import { getSessionContext, getActiveBranchId } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
 import { createJobCardSchema } from '@smartbizos/validation';
 
@@ -122,12 +122,13 @@ export async function POST(req: NextRequest) {
     .select('*', { count: 'exact', head: true })
     .eq('org_id', session.employee.org_id);
   const jobNumber = `JC-${String((count ?? 0) + 1).padStart(4, '0')}`;
+  const activeBranchId = await getActiveBranchId(session.employee.org_id, session.employee.branch_id);
 
   const { data: job, error } = await admin
     .from('job_cards')
     .insert({
       org_id: session.employee.org_id,
-      branch_id: session.employee.branch_id,
+      branch_id: activeBranchId,
       customer_id: parsed.data.customerId,
       vehicle_id: parsed.data.vehicleId,
       job_number: jobNumber,
