@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSessionContext, getActiveBranchId } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
+import BranchSwitcher from '@/components/BranchSwitcher';
 import {
   ClipboardList,
   IndianRupee,
@@ -78,7 +79,10 @@ export default async function DashboardPage() {
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-display font-bold">Welcome back, {employee.full_name.split(' ')[0]}</h1>
-            <p className="text-sm text-slate-500 mt-1">{org.name}</p>
+            <div className="text-sm text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+              {org.name}
+              <BranchSwitcher />
+            </div>
           </div>
           <a
             href="/job-cards"
