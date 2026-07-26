@@ -9,7 +9,8 @@ import {
   Wallet,
   Plus,
   ArrowRight,
-  Clock
+  Clock,
+  Cake
 } from 'lucide-react';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -42,7 +43,7 @@ export default async function DashboardPage() {
   todayStart.setHours(0, 0, 0, 0);
   const todayIso = todayStart.toISOString();
 
-  const [{ data: allJobs }, { data: todayInvoices }, { data: inventory }, { data: wallet }, { data: parts }] =
+  const [{ data: allJobs }, { data: todayInvoices }, { data: inventory }, { data: wallet }, { data: parts }, { data: customers }] =
     await Promise.all([
       admin
         .from('job_cards')
@@ -54,8 +55,14 @@ export default async function DashboardPage() {
       admin.from('invoices').select('total, created_at, job_id').eq('org_id', org.id).gte('created_at', todayIso),
       admin.from('inventory').select('*').eq('org_id', org.id).eq('branch_id', activeBranchId),
       admin.from('org_wallets').select('balance').eq('org_id', org.id).maybeSingle(),
-      admin.from('parts').select('id, name').eq('org_id', org.id)
+      admin.from('parts').select('id, name').eq('org_id', org.id),
+      admin.from('customers').select('id, date_of_birth, anniversary_date').eq('org_id', org.id).is('deleted_at', null)
     ]);
+
+  const todayMD = new Date().toISOString().slice(5, 10);
+  const occasionsToday = (customers ?? []).filter(
+    (c) => (c.date_of_birth && c.date_of_birth.slice(5, 10) === todayMD) || (c.anniversary_date && c.anniversary_date.slice(5, 10) === todayMD)
+  ).length;
 
   const jobs = allJobs ?? [];
   const jobsToday = jobs.filter((j) => j.created_at >= todayIso);
@@ -104,8 +111,25 @@ export default async function DashboardPage() {
         </div>
 
         {/* Needs attention */}
-        {(pendingApproval.length > 0 || lowStockItems.length > 0) && (
+        {(pendingApproval.length > 0 || lowStockItems.length > 0 || occasionsToday > 0) && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {occasionsToday > 0 && (
+              <a
+                href="/marketing"
+                className="bg-pink-950/30 border border-pink-900/50 rounded-2xl p-4 flex items-center justify-between hover:bg-pink-950/40 cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Cake className="w-5 h-5 text-pink-400 shrink-0" />
+                  <div>
+                    <div className="text-pink-200 font-semibold text-sm">
+                      {occasionsToday} customer{occasionsToday === 1 ? '' : 's'} celebrating today
+                    </div>
+                    <div className="text-xs text-pink-400/70">Send a birthday/anniversary wish</div>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-pink-400 shrink-0" />
+              </a>
+            )}
             {pendingApproval.length > 0 && (
               <a
                 href="/job-cards"

@@ -12,6 +12,8 @@ interface Customer {
   phone: string;
   email: string;
   address: string;
+  date_of_birth: string | null;
+  anniversary_date: string | null;
 }
 
 export default function CustomersClient({
@@ -34,6 +36,8 @@ export default function CustomersClient({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [anniversaryDate, setAnniversaryDate] = useState('');
 
   const filteredCustomers = initialCustomers.filter((c) => {
     if (!searchQuery.trim()) return true;
@@ -51,6 +55,8 @@ export default function CustomersClient({
     setPhone('');
     setEmail('');
     setAddress('');
+    setDateOfBirth('');
+    setAnniversaryDate('');
     setShowForm(false);
     setEditingId(null);
     setError(null);
@@ -63,6 +69,8 @@ export default function CustomersClient({
     setPhone(c.phone);
     setEmail(c.email ?? '');
     setAddress(c.address ?? '');
+    setDateOfBirth(c.date_of_birth ?? '');
+    setAnniversaryDate(c.anniversary_date ?? '');
     setShowForm(true);
   }
 
@@ -83,7 +91,7 @@ export default function CustomersClient({
     setSubmitting(true);
     setError(null);
 
-    const body = { firstName, lastName, phone, email, address };
+    const body = { firstName, lastName, phone, email, address, dateOfBirth, anniversaryDate };
     const res = editingId
       ? await fetch(`/api/customers/${editingId}`, {
           method: 'PATCH',
@@ -197,6 +205,26 @@ export default function CustomersClient({
                   onChange={(e) => setAddress(e.target.value)}
                   disabled={submitting}
                   placeholder="House/Flat, Street, Area, City"
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Date of Birth (optional)</label>
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  disabled={submitting}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Anniversary (optional)</label>
+                <input
+                  type="date"
+                  value={anniversaryDate}
+                  onChange={(e) => setAnniversaryDate(e.target.value)}
+                  disabled={submitting}
                   className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
                 />
               </div>

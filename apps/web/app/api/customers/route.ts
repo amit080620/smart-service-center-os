@@ -78,6 +78,8 @@ export async function POST(req: NextRequest) {
       phone: parsed.data.phone,
       email: parsed.data.email || '',
       address: parsed.data.address,
+      date_of_birth: parsed.data.dateOfBirth || null,
+      anniversary_date: parsed.data.anniversaryDate || null,
       whatsapp_opt_in: parsed.data.whatsappOptIn
     })
     .select()

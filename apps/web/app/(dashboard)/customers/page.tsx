@@ -25,7 +25,7 @@ export default async function CustomersPage() {
   const CUSTOMERS_LIMIT = 1000;
   const { data: customers } = await admin
     .from('customers')
-    .select('id, first_name, last_name, phone, email, address')
+    .select('id, first_name, last_name, phone, email, address, date_of_birth, anniversary_date')
     .eq('org_id', session.employee.org_id)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })

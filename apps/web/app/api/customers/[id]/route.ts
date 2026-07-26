@@ -43,6 +43,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       ...(parsed.data.phone !== undefined && { phone: parsed.data.phone }),
       ...(parsed.data.email !== undefined && { email: parsed.data.email }),
       ...(parsed.data.address !== undefined && { address: parsed.data.address }),
+      ...(parsed.data.dateOfBirth !== undefined && { date_of_birth: parsed.data.dateOfBirth || null }),
+      ...(parsed.data.anniversaryDate !== undefined && { anniversary_date: parsed.data.anniversaryDate || null }),
       ...(parsed.data.whatsappOptIn !== undefined && { whatsapp_opt_in: parsed.data.whatsappOptIn }),
       updated_at: new Date().toISOString()
     })

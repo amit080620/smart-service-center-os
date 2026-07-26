@@ -28,6 +28,8 @@ export const customerSchema = z.object({
   phone: z.string().trim().min(6, 'Enter a valid phone number.'),
   email: z.string().trim().toLowerCase().email().optional().or(z.literal('')),
   address: z.string().trim().optional().default(''),
+  dateOfBirth: z.string().trim().optional().default(''),
+  anniversaryDate: z.string().trim().optional().default(''),
   whatsappOptIn: z.boolean().optional().default(true)
 });
 export type CustomerInput = z.infer<typeof customerSchema>;

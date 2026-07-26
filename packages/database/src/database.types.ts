@@ -152,6 +152,8 @@ export interface Database {
           phone: string;
           email: string;
           address: string;
+          date_of_birth: string | null;
+          anniversary_date: string | null;
           whatsapp_opt_in: boolean;
           last_synced_at: string | null;
           created_at: string;
@@ -166,6 +168,8 @@ export interface Database {
           phone: string;
           email?: string;
           address?: string;
+          date_of_birth?: string | null;
+          anniversary_date?: string | null;
           whatsapp_opt_in?: boolean;
           last_synced_at?: string | null;
           created_at?: string;

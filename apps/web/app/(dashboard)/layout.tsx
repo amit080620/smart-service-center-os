@@ -19,6 +19,7 @@ import {
   CreditCard,
   Gauge,
   Building2,
+  Megaphone,
   MoreHorizontal,
   X,
   LogOut
@@ -59,6 +60,7 @@ const MORE_GROUPS = [
     items: [
       { href: '/suppliers', label: 'Suppliers', icon: Truck },
       { href: '/reports', label: 'Reports', icon: BarChart3 },
+      { href: '/marketing', label: 'Marketing', icon: Megaphone },
       { href: '/platform-billing', label: 'Wallet', icon: CreditCard }
     ]
   },
