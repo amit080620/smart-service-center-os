@@ -10,13 +10,15 @@ export default async function VehiclesPage() {
   }
 
   const admin = createSupabaseAdminClient();
+  const VEHICLES_LIMIT = 1000;
   const [{ data: vehicles }, { data: customers }] = await Promise.all([
     admin
       .from('vehicles')
       .select('id, customer_id, plate_number, vin, make, model, year, color, odometer_km')
       .eq('org_id', session.employee.org_id)
       .is('deleted_at', null)
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .limit(VEHICLES_LIMIT),
     admin
       .from('customers')
       .select('id, first_name, last_name')
@@ -24,5 +26,11 @@ export default async function VehiclesPage() {
       .is('deleted_at', null)
   ]);
 
-  return <VehiclesClient initialVehicles={vehicles ?? []} initialCustomers={customers ?? []} />;
+  return (
+    <VehiclesClient
+      initialVehicles={vehicles ?? []}
+      initialCustomers={customers ?? []}
+      isLimited={(vehicles ?? []).length >= VEHICLES_LIMIT}
+    />
+  );
 }

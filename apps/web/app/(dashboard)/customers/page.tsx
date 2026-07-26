@@ -17,12 +17,19 @@ export default async function CustomersPage() {
   }
 
   const admin = createSupabaseAdminClient();
+  // Bounded to the most recent 1000 — same reasoning as Job Cards and
+  // Invoices: unbounded growth here is the real risk over years of
+  // use, and anything older is still reachable by searching phone
+  // number directly if truly needed (a customer rarely needs finding
+  // by browsing rather than searching anyway).
+  const CUSTOMERS_LIMIT = 1000;
   const { data: customers } = await admin
     .from('customers')
     .select('id, first_name, last_name, phone, email, address')
     .eq('org_id', session.employee.org_id)
     .is('deleted_at', null)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(CUSTOMERS_LIMIT);
 
-  return <CustomersClient initialCustomers={customers ?? []} />;
+  return <CustomersClient initialCustomers={customers ?? []} isLimited={(customers ?? []).length >= CUSTOMERS_LIMIT} />;
 }

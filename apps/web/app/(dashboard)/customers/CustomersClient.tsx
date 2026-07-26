@@ -14,7 +14,13 @@ interface Customer {
   address: string;
 }
 
-export default function CustomersClient({ initialCustomers }: { initialCustomers: Customer[] }) {
+export default function CustomersClient({
+  initialCustomers,
+  isLimited
+}: {
+  initialCustomers: Customer[];
+  isLimited?: boolean;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showForm, setShowForm] = useState(false);
@@ -131,6 +137,9 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
             className="w-full bg-slate-900/80 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none"
           />
         </div>
+        {isLimited && (
+          <p className="text-xs text-slate-500 -mt-2">Showing the most recent 1000 customers.</p>
+        )}
 
         {showForm && (
           <form
