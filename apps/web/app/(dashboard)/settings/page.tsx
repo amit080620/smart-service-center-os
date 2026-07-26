@@ -18,6 +18,8 @@ export default async function SettingsPage() {
       address={session.org.address}
       gstNumber={session.org.settings.gst_number ?? ''}
       invoiceFooterText={session.org.settings.invoice_footer_text ?? ''}
+      currentHeaderImageUrl={(session.org.settings.invoice_header_image_url as string) ?? null}
+      currentFooterImageUrl={(session.org.settings.invoice_footer_image_url as string) ?? null}
       canManage={canManageOrgSettings(session.employee.role)}
     />
   );

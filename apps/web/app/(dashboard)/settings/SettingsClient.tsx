@@ -12,6 +12,8 @@ export default function SettingsClient({
   address,
   gstNumber,
   invoiceFooterText,
+  currentHeaderImageUrl,
+  currentFooterImageUrl,
   canManage
 }: {
   orgName: string;
@@ -21,14 +23,25 @@ export default function SettingsClient({
   address: string;
   gstNumber: string;
   invoiceFooterText: string;
+  currentHeaderImageUrl: string | null;
+  currentFooterImageUrl: string | null;
   canManage: boolean;
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const headerInputRef = useRef<HTMLInputElement>(null);
+  const footerInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(currentLogoUrl);
   const [uploading, setUploading] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
   const [logoSuccess, setLogoSuccess] = useState(false);
+
+  const [headerPreview, setHeaderPreview] = useState<string | null>(currentHeaderImageUrl);
+  const [footerPreview, setFooterPreview] = useState<string | null>(currentFooterImageUrl);
+  const [headerUploading, setHeaderUploading] = useState(false);
+  const [footerUploading, setFooterUploading] = useState(false);
+  const [headerError, setHeaderError] = useState<string | null>(null);
+  const [footerError, setFooterError] = useState<string | null>(null);
 
   const [phone, setPhone] = useState(contactPhone);
   const [email, setEmail] = useState(contactEmail);
@@ -66,6 +79,58 @@ export default function SettingsClient({
     setPreview(data.logoUrl);
     setUploading(false);
     setLogoSuccess(true);
+    router.refresh();
+  }
+
+  async function handleHeaderFooterUpload(kind: 'header' | 'footer', file: File) {
+    const setUploadingFn = kind === 'header' ? setHeaderUploading : setFooterUploading;
+    const setErrorFn = kind === 'header' ? setHeaderError : setFooterError;
+    const setPreviewFn = kind === 'header' ? setHeaderPreview : setFooterPreview;
+    const fallback = kind === 'header' ? currentHeaderImageUrl : currentFooterImageUrl;
+
+    setErrorFn(null);
+    setUploadingFn(true);
+    setPreviewFn(URL.createObjectURL(file));
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('kind', kind);
+
+    const res = await fetch('/api/organization/invoice-image', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setErrorFn(data.error?.message ?? `Could not upload ${kind} image.`);
+      setUploadingFn(false);
+      setPreviewFn(fallback);
+      return;
+    }
+
+    setPreviewFn(data.imageUrl);
+    setUploadingFn(false);
+    router.refresh();
+  }
+
+  async function handleRemoveImage(kind: 'header' | 'footer') {
+    const setUploadingFn = kind === 'header' ? setHeaderUploading : setFooterUploading;
+    const setErrorFn = kind === 'header' ? setHeaderError : setFooterError;
+    const setPreviewFn = kind === 'header' ? setHeaderPreview : setFooterPreview;
+
+    setUploadingFn(true);
+    setErrorFn(null);
+    const res = await fetch('/api/organization/invoice-image', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind })
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      setErrorFn(data.error?.message ?? `Could not remove ${kind} image.`);
+      setUploadingFn(false);
+      return;
+    }
+    setPreviewFn(null);
+    setUploadingFn(false);
     router.refresh();
   }
 
@@ -164,6 +229,108 @@ export default function SettingsClient({
                 <Upload className="w-4 h-4" />
                 {uploading ? 'Uploading...' : preview ? 'Change Logo' : 'Upload Logo'}
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* A4 letterhead header/footer images */}
+        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 space-y-5">
+          <div>
+            <h2 className="font-semibold text-sm mb-1">A4 Print — Custom Header & Footer Images</h2>
+            <p className="text-xs text-slate-500">
+              For shops that print on pre-designed letterhead paper, or want a fully custom branded band (shop photo,
+              service list, ad banner) instead of the plain text header/footer. <strong className="text-slate-400">Only affects the A4
+              print</strong> — the thermal (72mm) print always stays plain text, since a receipt-width printout has no
+              room for a banner image.
+            </p>
+            <div className="mt-2 text-xs text-slate-500 bg-slate-950 border border-slate-800 rounded-lg p-3 space-y-1">
+              <div><strong className="text-slate-400">Format:</strong> PNG, JPEG, or WEBP — up to 3MB</div>
+              <div><strong className="text-slate-400">Width:</strong> at least 1600px wide (it's scaled to fit the page automatically)</div>
+              <div><strong className="text-slate-400">Header height:</strong> keep it compact — under ~300px tall, so there's still room for the invoice itself</div>
+              <div><strong className="text-slate-400">Footer height:</strong> under ~200px tall works best</div>
+              <div>If you upload one, it fully replaces the plain text version for that spot (e.g. uploading a header image hides the logo/business-name text block, since your image already shows that).</div>
+            </div>
+          </div>
+
+          {/* Header image */}
+          <div className="space-y-2">
+            <div className="text-xs font-mono text-slate-400 uppercase">Header Image</div>
+            {headerError && <div className="bg-red-950/40 border border-red-900 text-red-200 text-xs rounded-xl p-2">{headerError}</div>}
+            <div className="rounded-xl bg-slate-950 border border-slate-800 overflow-hidden">
+              {headerPreview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={headerPreview} alt="Invoice header" className="w-full h-auto max-h-32 object-contain bg-white" />
+              ) : (
+                <div className="h-16 flex items-center justify-center text-slate-700 text-xs">No header image — plain text header will print</div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <input
+                ref={headerInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(e) => e.target.files?.[0] && handleHeaderFooterUpload('header', e.target.files[0])}
+                className="hidden"
+                disabled={headerUploading}
+              />
+              <button
+                onClick={() => headerInputRef.current?.click()}
+                disabled={headerUploading}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-3 py-2 rounded-xl text-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                {headerUploading ? 'Uploading...' : headerPreview ? 'Change Header Image' : 'Upload Header Image'}
+              </button>
+              {headerPreview && (
+                <button
+                  onClick={() => handleRemoveImage('header')}
+                  disabled={headerUploading}
+                  className="text-red-400 hover:text-red-300 text-xs px-3 py-2 cursor-pointer disabled:opacity-50"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Footer image */}
+          <div className="space-y-2">
+            <div className="text-xs font-mono text-slate-400 uppercase">Footer Image</div>
+            {footerError && <div className="bg-red-950/40 border border-red-900 text-red-200 text-xs rounded-xl p-2">{footerError}</div>}
+            <div className="rounded-xl bg-slate-950 border border-slate-800 overflow-hidden">
+              {footerPreview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={footerPreview} alt="Invoice footer" className="w-full h-auto max-h-24 object-contain bg-white" />
+              ) : (
+                <div className="h-16 flex items-center justify-center text-slate-700 text-xs">No footer image — plain text footer will print</div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <input
+                ref={footerInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(e) => e.target.files?.[0] && handleHeaderFooterUpload('footer', e.target.files[0])}
+                className="hidden"
+                disabled={footerUploading}
+              />
+              <button
+                onClick={() => footerInputRef.current?.click()}
+                disabled={footerUploading}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-3 py-2 rounded-xl text-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                {footerUploading ? 'Uploading...' : footerPreview ? 'Change Footer Image' : 'Upload Footer Image'}
+              </button>
+              {footerPreview && (
+                <button
+                  onClick={() => handleRemoveImage('footer')}
+                  disabled={footerUploading}
+                  className="text-red-400 hover:text-red-300 text-xs px-3 py-2 cursor-pointer disabled:opacity-50"
+                >
+                  Remove
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -64,28 +64,43 @@ export default async function EstimatePrintPage({ params }: { params: Promise<{ 
     <div className="bg-white min-h-screen text-black">
       <PrintActions backHref={`/job-cards/${job.id}`} />
       <div className="mx-auto p-10 max-w-[210mm] text-sm">
-        <div className="flex justify-between items-start border-b-2 border-black pb-4">
-          <div className="flex items-start gap-4">
-            {org.logo_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={org.logo_url} alt={org.name} className="h-16 w-16 object-contain shrink-0" />
-            )}
-            <div>
-              <div className="text-2xl font-bold">{org.name}</div>
-              {org.address && <div className="text-gray-700 mt-1">{org.address}</div>}
-              <div className="text-gray-700">
-                {org.contact_phone && <span>Ph: {org.contact_phone}</span>}
-                {org.contact_email && <span className="ml-3">{org.contact_email}</span>}
+        {org.settings.invoice_header_image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={org.settings.invoice_header_image_url as string} alt={org.name} className="w-full h-auto mb-4" />
+        ) : (
+          <div className="flex justify-between items-start border-b-2 border-black pb-4">
+            <div className="flex items-start gap-4">
+              {org.logo_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={org.logo_url} alt={org.name} className="h-16 w-16 object-contain shrink-0" />
+              )}
+              <div>
+                <div className="text-2xl font-bold">{org.name}</div>
+                {org.address && <div className="text-gray-700 mt-1">{org.address}</div>}
+                <div className="text-gray-700">
+                  {org.contact_phone && <span>Ph: {org.contact_phone}</span>}
+                  {org.contact_email && <span className="ml-3">{org.contact_email}</span>}
+                </div>
+                {org.settings.gst_number && <div className="text-gray-700 font-mono text-xs mt-0.5">GSTIN: {org.settings.gst_number}</div>}
               </div>
-              {org.settings.gst_number && <div className="text-gray-700 font-mono text-xs mt-0.5">GSTIN: {org.settings.gst_number}</div>}
+            </div>
+            <div className="text-right">
+              <div className="text-xl font-bold tracking-wide">ESTIMATE</div>
+              <div className="mt-1 text-gray-700">{job.job_number}</div>
+              <div className="text-gray-700">Date: {estimateDate}</div>
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-xl font-bold tracking-wide">ESTIMATE</div>
-            <div className="mt-1 text-gray-700">{job.job_number}</div>
-            <div className="text-gray-700">Date: {estimateDate}</div>
+        )}
+        {Boolean(org.settings.invoice_header_image_url) && (
+          <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-4">
+            <div className="text-gray-700">{org.settings.gst_number && <span className="font-mono text-xs">GSTIN: {org.settings.gst_number}</span>}</div>
+            <div className="text-right">
+              <div className="text-xl font-bold tracking-wide">ESTIMATE</div>
+              <div className="mt-1 text-gray-700">{job.job_number}</div>
+              <div className="text-gray-700">Date: {estimateDate}</div>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-2 gap-8 mt-6">
           <div>
@@ -167,10 +182,21 @@ export default async function EstimatePrintPage({ params }: { params: Promise<{ 
           GST, if applicable, will be added at the time of final billing.
         </div>
 
-        <div className="mt-16 pt-4 border-t border-gray-300 flex justify-between text-xs text-gray-500">
-          <div>Estimate valid for reference only.</div>
-          <div>Customer Signature ____________________</div>
-        </div>
+        {org.settings.invoice_footer_image_url ? (
+          <div className="mt-16 pt-4 border-t border-gray-300">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={org.settings.invoice_footer_image_url as string} alt={org.name} className="w-full h-auto mb-2" />
+            <div className="flex justify-between text-xs text-gray-500">
+              <div />
+              <div>Customer Signature ____________________</div>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-16 pt-4 border-t border-gray-300 flex justify-between text-xs text-gray-500">
+            <div>Estimate valid for reference only.</div>
+            <div>Customer Signature ____________________</div>
+          </div>
+        )}
       </div>
     </div>
   );
