@@ -69,6 +69,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       plate_number: vehicle?.plate_number ?? '',
       technician_name: technicians?.find((t) => t.id === job.assigned_technician_id)?.full_name ?? null
     },
+    orgName: session.org.name,
     services: populatedServices,
     parts: populatedParts,
     statusLogs: statusLogs ?? [],

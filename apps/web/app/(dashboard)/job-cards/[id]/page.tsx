@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ClipboardList, Wrench, Package, Plus, Clock, Trash2, Printer, ShieldCheck } from 'lucide-react';
+import { ClipboardList, Wrench, Package, Plus, Clock, Trash2, Printer, ShieldCheck, MessageCircle } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
 import JobDetailsEditPanel from './JobDetailsEditPanel';
+import { buildWhatsAppLink } from '@/lib/whatsapp';
 
 interface JobDetail {
   id: string;
@@ -85,6 +86,9 @@ export default function JobCardDetailPage() {
   const jobId = params.id as string;
 
   const [job, setJob] = useState<JobDetail | null>(null);
+  const [orgName, setOrgName] = useState('');
+  const [etaInput, setEtaInput] = useState('');
+  const [showEtaInput, setShowEtaInput] = useState(false);
   const [services, setServices] = useState<LineService[]>([]);
   const [parts, setParts] = useState<LinePart[]>([]);
   const [canEditCompleted, setCanEditCompleted] = useState(false);
@@ -128,6 +132,7 @@ export default function JobCardDetailPage() {
     if (detailRes.ok) {
       const data = await detailRes.json();
       setJob(data.job);
+      setOrgName(data.orgName ?? '');
       setServices(data.services);
       setParts(data.parts);
       setStatusLogs(data.statusLogs);
@@ -372,6 +377,68 @@ export default function JobCardDetailPage() {
         >
           <Printer className="w-4 h-4" /> Print Estimate for Customer
         </a>
+
+        {/* Customer WhatsApp notifications — the two moments that
+            actually matter to a customer: "we've got your vehicle" and
+            "come pick it up." Both are one-tap wa.me links (see
+            lib/whatsapp.ts) with the job's real details already filled
+            in, not a manually-typed message each time. */}
+        <div className="flex flex-col gap-2">
+          {job.customer_phone && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {!showEtaInput ? (
+                <button
+                  onClick={() => setShowEtaInput(true)}
+                  className="inline-flex bg-emerald-900/40 hover:bg-emerald-900/60 text-emerald-300 text-sm font-medium px-4 py-2 rounded-xl items-center gap-2 cursor-pointer transition-all"
+                >
+                  <MessageCircle className="w-4 h-4" /> Notify: Vehicle Received
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap bg-slate-900/80 border border-slate-800 rounded-xl p-2">
+                  <input
+                    value={etaInput}
+                    onChange={(e) => setEtaInput(e.target.value)}
+                    placeholder="Approx time (e.g. tomorrow evening, 2 days)"
+                    className="bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs outline-none w-56"
+                  />
+                  <a
+                    href={
+                      buildWhatsAppLink(
+                        job.customer_phone,
+                        `Hi ${job.customer_name.split(' ')[0] || job.customer_name}, thank you for bringing your ${job.vehicle_label} (${job.plate_number}) to ${orgName || 'us'}. Your job card ${job.job_number} has been created and work will begin shortly.${etaInput.trim() ? ` Estimated completion: ${etaInput.trim()}.` : ''} We'll notify you as soon as it's ready. Thank you for your trust!`
+                      ) ?? '#'
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShowEtaInput(false)}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg cursor-pointer flex items-center gap-1.5"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" /> Send
+                  </a>
+                  <button onClick={() => setShowEtaInput(false)} className="text-xs text-slate-500 hover:text-slate-300 cursor-pointer">
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              {['completed', 'delivered'].includes(job.status) && (
+                <a
+                  href={
+                    buildWhatsAppLink(
+                      job.customer_phone,
+                      `Hi ${job.customer_name.split(' ')[0] || job.customer_name}, great news! Your ${job.vehicle_label} (${job.plate_number}) is ready for pickup at ${orgName || 'us'}. Job card ${job.job_number}. Total amount due: \u20b9${(job.final_cost || job.estimated_cost).toLocaleString('en-IN')}. Please visit us to collect your vehicle and complete payment. Thank you!`
+                    ) ?? '#'
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-medium px-4 py-2 rounded-xl items-center gap-2 cursor-pointer transition-all"
+                >
+                  <MessageCircle className="w-4 h-4" /> Notify: Vehicle Ready
+                </a>
+              )}
+            </div>
+          )}
+        </div>
 
         {error && (
           <div className="bg-red-950/40 border border-red-900 text-red-200 text-xs rounded-xl p-3">{error}</div>
