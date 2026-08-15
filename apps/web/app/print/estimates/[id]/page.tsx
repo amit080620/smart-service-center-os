@@ -63,7 +63,7 @@ export default async function EstimatePrintPage({ params }: { params: Promise<{ 
   return (
     <div className="bg-white min-h-screen text-black">
       <PrintActions backHref={`/job-cards/${job.id}`} />
-      <div className="mx-auto p-10 max-w-[210mm] text-sm">
+      <div id="print-content" className="mx-auto p-10 max-w-[210mm] text-sm">
         {org.settings.invoice_header_image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={org.settings.invoice_header_image_url as string} alt={org.name} className="w-full h-auto mb-4" />
