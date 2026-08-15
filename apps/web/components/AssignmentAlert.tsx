@@ -12,16 +12,13 @@ interface Assignment {
 
 const POLL_INTERVAL_MS = 10000;
 
-// Persistent job-assignment alert — polls for jobs assigned to the
-// current employee that they haven't acknowledged yet, and if any exist,
-// shows a full-screen alert with a professional looping notification tone
-// that only stops once they tap Accept.
+// Persistent job-assignment alert.
 //
 // Sound pattern:
-// Ding → Ding → Ding → pause → stronger DING
+// DING → DING → DING → pause → stronger DING
 //
-// This is a browser-tab-open alert. Actual push notifications that wake
-// the phone when the browser/app is closed require PWA + push service.
+// The alert keeps repeating until the technician accepts the job.
+// Audio starts after the first user interaction with the page.
 
 export default function AssignmentAlert() {
   const [pending, setPending] = useState<Assignment[]>([]);
@@ -58,7 +55,10 @@ export default function AssignmentAlert() {
       POLL_INTERVAL_MS
     );
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      stopAlertTone();
+    };
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -70,9 +70,11 @@ export default function AssignmentAlert() {
       if (!audioCtxRef.current) {
         const AudioContextClass =
           window.AudioContext ||
-          (window as unknown as {
-            webkitAudioContext: typeof AudioContext;
-          }).webkitAudioContext;
+          (
+            window as unknown as {
+              webkitAudioContext: typeof AudioContext;
+            }
+          ).webkitAudioContext;
 
         if (!AudioContextClass) {
           return null;
@@ -86,7 +88,7 @@ export default function AssignmentAlert() {
 
       if (ctx.state === 'suspended') {
         ctx.resume().catch(() => {
-          // Browser may require a user interaction.
+          // Browser may require user interaction.
         });
       }
 
@@ -97,7 +99,7 @@ export default function AssignmentAlert() {
   }
 
   // ---------------------------------------------------------------------------
-  // Play one professional "ding"
+  // Play one louder professional "DING"
   // ---------------------------------------------------------------------------
 
   function playDing(
@@ -118,7 +120,7 @@ export default function AssignmentAlert() {
       const gain =
         ctx.createGain();
 
-      // Clean professional notification sound.
+      // Professional notification tone.
       oscillator.type = 'sine';
 
       oscillator.frequency.setValueAtTime(
@@ -126,15 +128,14 @@ export default function AssignmentAlert() {
         now
       );
 
-      // Slight upward movement makes it feel more like
-      // a notification chime instead of a flat beep.
+      // Small pitch rise gives the sound a cleaner
+      // notification/chime character.
       oscillator.frequency.exponentialRampToValueAtTime(
-        frequency * 1.08,
+        frequency * 1.10,
         now + duration
       );
 
       oscillator.connect(gain);
-
       gain.connect(ctx.destination);
 
       // Start almost silent.
@@ -143,13 +144,13 @@ export default function AssignmentAlert() {
         now
       );
 
-      // Quick attack.
+      // Faster / stronger attack.
       gain.gain.exponentialRampToValueAtTime(
         volume,
-        now + 0.015
+        now + 0.012
       );
 
-      // Smooth fade-out.
+      // Smooth but clear fade-out.
       gain.gain.exponentialRampToValueAtTime(
         0.0001,
         now + duration
@@ -158,7 +159,7 @@ export default function AssignmentAlert() {
       oscillator.start(now);
 
       oscillator.stop(
-        now + duration + 0.02
+        now + duration + 0.03
       );
     } catch {
       // Ignore audio errors.
@@ -166,56 +167,69 @@ export default function AssignmentAlert() {
   }
 
   // ---------------------------------------------------------------------------
-  // Professional alert sequence
+  // Alert sequence
   //
-  // Ding
-  // Ding
-  // Ding
-  // Pause
+  // DING
+  // DING
+  // DING
+  // pause
   // DING! stronger
   // ---------------------------------------------------------------------------
 
   function playAlertSequence() {
-    if (!soundEnabledRef.current) return;
+    if (!soundEnabledRef.current) {
+      return;
+    }
 
-    // First Ding
+    // -------------------------------------------------------------------------
+    // DING 1
+    // -------------------------------------------------------------------------
+
     playDing(
-      740,
-      0.12,
-      0.16
+      780,
+      0.20,
+      0.18
     );
 
-    // Second Ding
+    // -------------------------------------------------------------------------
+    // DING 2
+    // -------------------------------------------------------------------------
+
     window.setTimeout(() => {
       if (!soundPlayingRef.current) return;
 
       playDing(
-        740,
-        0.12,
-        0.16
+        780,
+        0.20,
+        0.18
       );
     }, 260);
 
-    // Third Ding
+    // -------------------------------------------------------------------------
+    // DING 3
+    // -------------------------------------------------------------------------
+
     window.setTimeout(() => {
       if (!soundPlayingRef.current) return;
 
       playDing(
-        740,
-        0.12,
-        0.16
+        780,
+        0.20,
+        0.18
       );
     }, 520);
 
-    // Pause
-    // Then stronger final DING
+    // -------------------------------------------------------------------------
+    // PAUSE → STRONG DING
+    // -------------------------------------------------------------------------
+
     window.setTimeout(() => {
       if (!soundPlayingRef.current) return;
 
       playDing(
-        980,
-        0.22,
-        0.28
+        1050,
+        0.32,
+        0.30
       );
     }, 950);
   }
@@ -235,16 +249,18 @@ export default function AssignmentAlert() {
 
     soundPlayingRef.current = true;
 
-    // Start immediately.
+    // Play immediately.
     playAlertSequence();
 
-    // Repeat the sequence every ~2.2 seconds.
+    // Repeat every 2.4 seconds.
     soundTimerRef.current =
       window.setInterval(() => {
-        if (!soundPlayingRef.current) return;
+        if (!soundPlayingRef.current) {
+          return;
+        }
 
         playAlertSequence();
-      }, 2200);
+      }, 2400);
   }
 
   // ---------------------------------------------------------------------------
@@ -264,7 +280,7 @@ export default function AssignmentAlert() {
   }
 
   // ---------------------------------------------------------------------------
-  // Enable sound after first user interaction
+  // Enable sound after first interaction
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
@@ -312,7 +328,9 @@ export default function AssignmentAlert() {
       soundEnabledRef.current
     ) {
       startAlertTone();
-    } else if (pending.length === 0) {
+    } else if (
+      pending.length === 0
+    ) {
       stopAlertTone();
     }
 
@@ -344,7 +362,7 @@ export default function AssignmentAlert() {
         );
       }
     } catch {
-      // Keep the assignment visible if accepting failed.
+      // Keep assignment visible if accepting failed.
     }
 
     setAccepting(null);
@@ -365,6 +383,7 @@ export default function AssignmentAlert() {
   return (
     <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 animate-fadeIn">
       <div className="bg-slate-900 border-2 border-amber-500 rounded-2xl p-6 max-w-sm w-full text-center space-y-4">
+
         {/* Bell */}
         <div className="w-14 h-14 rounded-full bg-amber-500 flex items-center justify-center mx-auto animate-pulse">
           <Bell className="w-7 h-7 text-slate-950" />
