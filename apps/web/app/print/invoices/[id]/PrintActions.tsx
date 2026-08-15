@@ -1,19 +1,28 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Printer, ArrowLeft, Share2, Info, Bluetooth, Settings } from 'lucide-react';
-import { buildInvoiceReceipt, type ReceiptData } from '../../../../lib/print/escpos';
-import { isWebBluetoothSupported, printOverBluetooth } from '../../../../lib/print/bluetooth';
+import {
+  Printer,
+  ArrowLeft,
+  Share2,
+  Info,
+  Bluetooth,
+  Settings,
+} from 'lucide-react';
 
-// NOTE: a "WiFi/LAN Printer" button (server -> printer over TCP 9100)
-// was deliberately left OUT of this UI. This app is deployed on
-// Vercel/cloud, and a cloud server has no route to a printer's private
-// IP behind a shop's router — that button would fail every single
-// time. The transport code still exists at lib/print/network.ts +
-// app/api/print/network/route.ts for later, IF a local "print bridge"
-// agent is ever built to run on a PC at each shop (see chat) — but it
-// should stay unwired from the UI until that exists, so nobody at a
-// shop counter sees a button that can never work.
+import {
+  buildInvoiceReceipt,
+  type ReceiptData,
+} from '../../../../lib/print/escpos';
+
+import {
+  isWebBluetoothSupported,
+  printOverBluetooth,
+} from '../../../../lib/print/bluetooth';
+
+// -----------------------------------------------------------------------------
+// Thermal printer settings
+// -----------------------------------------------------------------------------
 
 const SETTINGS_KEY = 'thermalPrinterSettings';
 
@@ -22,201 +31,587 @@ interface PrinterSettings {
 }
 
 function loadSettings(): PrinterSettings {
-  if (typeof window === 'undefined') return { charsPerLine: 32 };
+  if (typeof window === 'undefined') {
+    return { charsPerLine: 32 };
+  }
+
   try {
     const raw = window.localStorage.getItem(SETTINGS_KEY);
-    if (raw) return { charsPerLine: 32, ...JSON.parse(raw) };
+
+    if (raw) {
+      return {
+        charsPerLine: 32,
+        ...JSON.parse(raw),
+      };
+    }
   } catch {
-    // ignore corrupted settings, fall back to defaults
+    // Ignore corrupted localStorage data.
   }
+
   return { charsPerLine: 32 };
 }
 
-// Small toolbar shown at the top of the print view.
-//
-// "Back" navigates to an explicit URL (backHref) rather than using
-// router.back()/browser history — these print pages always open in a
-// NEW TAB (target="_blank" from the job card / invoice page), so a
-// fresh tab has no history to go back to at all, which made the old
-// history-based back button silently do nothing.
-//
-// Three ways to actually get the bill onto paper, in order of how
-// directly they talk to the printer:
-//
-// "Bluetooth Printer" — connects directly from the browser to a BLE
-// thermal printer using the Web Bluetooth API and writes raw ESC/POS
-// bytes, no RawBT needed. Android + Chrome/Edge only — iOS Safari has
-// no Web Bluetooth support at all (Apple's restriction, not fixable
-// here). Printer must use one of a handful of common BLE profiles;
-// many cheap clones do, some don't.
-//
-// "Print" triggers the browser's native print dialog — works fine for
-// a properly-installed printer (USB, network/LAN, or a Bluetooth
-// printer with a real OS print driver). It does NOT work for most
-// cheap Bluetooth thermal printers, which have no OS print driver at
-// all and only accept raw ESC/POS commands — a browser limitation.
-//
-// "Share as Image" is the universal fallback: converts the receipt to
-// a PNG and opens the OS share sheet, so the person can hand it to
-// WHATEVER app actually talks to their printer (RawBT, the printer's
-// own app, etc). Works regardless of connection type or printer model,
-// which the two direct options above can't fully guarantee.
-export default function PrintActions({ backHref, receipt }: { backHref: string; receipt?: ReceiptData }) {
+// -----------------------------------------------------------------------------
+// Component
+// -----------------------------------------------------------------------------
+
+export default function PrintActions({
+  backHref,
+  receipt,
+}: {
+  backHref: string;
+  receipt?: ReceiptData;
+}) {
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
+
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [settings, setSettings] = useState<PrinterSettings>({ charsPerLine: 32 });
+
+  const [settings, setSettings] = useState<PrinterSettings>({
+    charsPerLine: 32,
+  });
+
   const [btBusy, setBtBusy] = useState(false);
-  const [btStatus, setBtStatus] = useState<{ ok: boolean; message: string } | null>(null);
+
+  const [btStatus, setBtStatus] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
+
+  // IMPORTANT:
+  // We no longer use this value to hide the Bluetooth button.
+  // The button should remain visible on mobile so the user gets a proper
+  // explanation if their browser does not support Web Bluetooth.
   const [btSupported, setBtSupported] = useState(false);
+
+  // Detect mobile browser
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     setSettings(loadSettings());
-    setBtSupported(isWebBluetoothSupported());
+
+    const supported = isWebBluetoothSupported();
+    setBtSupported(supported);
+
+    const mobile =
+      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      window.innerWidth <= 768;
+
+    setIsMobile(mobile);
   }, []);
+
+  // ---------------------------------------------------------------------------
+  // Settings
+  // ---------------------------------------------------------------------------
 
   function saveSettings(next: PrinterSettings) {
     setSettings(next);
-    window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+
+    try {
+      window.localStorage.setItem(
+        SETTINGS_KEY,
+        JSON.stringify(next)
+      );
+    } catch {
+      // Ignore localStorage errors.
+    }
   }
+
+  // ---------------------------------------------------------------------------
+  // Share receipt as image
+  // ---------------------------------------------------------------------------
 
   async function handleShareAsImage() {
     setSharing(true);
     setShareError(null);
+
     try {
       const html2canvas = (await import('html2canvas')).default;
+
       const node = document.getElementById('print-content');
-      if (!node) throw new Error('Could not find the content to share.');
 
-      const canvas = await html2canvas(node, { backgroundColor: '#ffffff', scale: 2 });
-      const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-      if (!blob) throw new Error('Could not generate the image.');
-
-      const file = new File([blob], 'receipt.png', { type: 'image/png' });
-
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'Receipt' });
-      } else {
-        // Desktop / unsupported browsers — fall back to a plain
-        // download so the image is still usable (e.g. attach it
-        // manually to a printer app or WhatsApp Web).
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'receipt.png';
-        a.click();
-        URL.revokeObjectURL(url);
+      if (!node) {
+        throw new Error('Could not find the receipt content.');
       }
+
+      const canvas = await html2canvas(node, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+      });
+
+      const blob: Blob | null = await new Promise((resolve) => {
+        canvas.toBlob(resolve, 'image/png');
+      });
+
+      if (!blob) {
+        throw new Error('Could not generate the receipt image.');
+      }
+
+      const file = new File(
+        [blob],
+        'receipt.png',
+        {
+          type: 'image/png',
+        }
+      );
+
+      // -----------------------------------------------------------------------
+      // Mobile Share Sheet
+      // -----------------------------------------------------------------------
+
+      if (
+        navigator.share &&
+        navigator.canShare &&
+        navigator.canShare({
+          files: [file],
+        })
+      ) {
+        await navigator.share({
+          files: [file],
+          title: 'Receipt',
+          text: 'Receipt',
+        });
+
+        return;
+      }
+
+      // -----------------------------------------------------------------------
+      // Fallback: download image
+      // -----------------------------------------------------------------------
+
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'receipt.png';
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      URL.revokeObjectURL(url);
     } catch (err) {
-      // AbortError just means the person closed the share sheet without
-      // picking anything — not a real error, don't show it as one.
-      if (err instanceof Error && err.name !== 'AbortError') {
-        setShareError(err.message);
+      // User closed share sheet.
+      if (
+        err instanceof Error &&
+        err.name === 'AbortError'
+      ) {
+        return;
       }
+
+      if (err instanceof Error) {
+        setShareError(err.message);
+      } else {
+        setShareError('Unable to share the receipt.');
+      }
+    } finally {
+      setSharing(false);
     }
-    setSharing(false);
   }
+
+  // ---------------------------------------------------------------------------
+  // Bluetooth printing
+  // ---------------------------------------------------------------------------
 
   async function handleBluetoothPrint() {
-    if (!receipt) return;
-    setBtBusy(true);
     setBtStatus(null);
-    const bytes = buildInvoiceReceipt(receipt, settings.charsPerLine);
-    const result = await printOverBluetooth(bytes);
-    if (result.ok) {
-      setBtStatus({ ok: true, message: result.deviceName ? `Printed via ${result.deviceName}.` : 'Printed.' });
-    } else if (result.error) {
-      setBtStatus({ ok: false, message: result.error });
+
+    if (!receipt) {
+      setBtStatus({
+        ok: false,
+        message: 'Receipt data is not available.',
+      });
+
+      return;
     }
-    setBtBusy(false);
+
+    // -------------------------------------------------------------------------
+    // Browser does not support Web Bluetooth
+    // -------------------------------------------------------------------------
+
+    if (!btSupported) {
+      setBtStatus({
+        ok: false,
+        message:
+          'Bluetooth printing is not supported in this browser. On Android, open this page directly in Chrome and try again. On iPhone, use "Share as Image" with your printer app.',
+      });
+
+      setShowHelp(true);
+
+      return;
+    }
+
+    // -------------------------------------------------------------------------
+    // Start printing
+    // -------------------------------------------------------------------------
+
+    setBtBusy(true);
+
+    try {
+      const bytes = buildInvoiceReceipt(
+        receipt,
+        settings.charsPerLine
+      );
+
+      const result = await printOverBluetooth(bytes);
+
+      if (result.ok) {
+        setBtStatus({
+          ok: true,
+          message: result.deviceName
+            ? `Printed via ${result.deviceName}.`
+            : 'Receipt sent to printer.',
+        });
+      } else {
+        setBtStatus({
+          ok: false,
+          message:
+            result.error ||
+            'Could not print to the Bluetooth printer.',
+        });
+      }
+    } catch (err) {
+      setBtStatus({
+        ok: false,
+        message:
+          err instanceof Error
+            ? err.message
+            : 'Bluetooth printing failed.',
+      });
+    } finally {
+      setBtBusy(false);
+    }
   }
 
+  // ---------------------------------------------------------------------------
+  // Native browser print
+  // ---------------------------------------------------------------------------
+
+  function handlePrint() {
+    setTimeout(() => {
+      window.print();
+    }, 50);
+  }
+
+  // ---------------------------------------------------------------------------
+  // UI
+  // ---------------------------------------------------------------------------
+
   return (
-    <div className="print:hidden sticky top-0 bg-gray-100 border-b border-gray-300 z-10">
-      <div className="p-3 flex items-center justify-between flex-wrap gap-2">
-        <a href={backHref} className="flex items-center gap-2 text-sm text-gray-700 hover:text-black cursor-pointer">
-          <ArrowLeft className="w-4 h-4" /> Back
-        </a>
-        <div className="flex items-center gap-2 flex-wrap">
-          {receipt && (
-            <>
-              {btSupported && (
+    <div className="print:hidden sticky top-0 bg-gray-100 border-b border-gray-300 z-50">
+      {/* ------------------------------------------------------------------ */}
+      {/* TOP BAR                                                            */}
+      {/* ------------------------------------------------------------------ */}
+
+      <div className="px-3 py-3">
+        <div className="flex items-center justify-between gap-3">
+          {/* Back */}
+          <a
+            href={backHref}
+            className="flex items-center gap-2 text-sm text-gray-700 hover:text-black cursor-pointer shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back</span>
+          </a>
+
+          {/* Desktop Actions */}
+          <div className="hidden md:flex items-center gap-2">
+            {receipt && (
+              <>
+                {/* Settings */}
                 <button
-                  onClick={() => setShowSettings(!showSettings)}
-                  className="text-gray-500 hover:text-black cursor-pointer p-1.5"
+                  type="button"
+                  onClick={() =>
+                    setShowSettings(!showSettings)
+                  }
+                  className="text-gray-500 hover:text-black cursor-pointer p-2 rounded-lg hover:bg-gray-200"
                   title="Paper width setting"
+                  aria-label="Paper width setting"
                 >
-                  <Settings className="w-4 h-4" />
+                  <Settings className="w-5 h-5" />
                 </button>
-              )}
-              {btSupported && (
+
+                {/* Bluetooth */}
                 <button
+                  type="button"
                   onClick={handleBluetoothPrint}
                   disabled={btBusy}
-                  className="bg-sky-700 hover:bg-sky-600 text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="bg-sky-700 hover:bg-sky-600 text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Bluetooth className="w-4 h-4" /> {btBusy ? 'Connecting...' : 'Bluetooth Printer'}
+                  <Bluetooth className="w-4 h-4" />
+
+                  {btBusy
+                    ? 'Connecting...'
+                    : 'Bluetooth Printer'}
                 </button>
-              )}
-            </>
+              </>
+            )}
+
+            {/* Help */}
+            <button
+              type="button"
+              onClick={() =>
+                setShowHelp(!showHelp)
+              }
+              className="text-gray-500 hover:text-black cursor-pointer p-2 rounded-lg hover:bg-gray-200"
+              title="Printer help"
+              aria-label="Printer help"
+            >
+              <Info className="w-5 h-5" />
+            </button>
+
+            {/* Share */}
+            <button
+              type="button"
+              onClick={handleShareAsImage}
+              disabled={sharing}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Share2 className="w-4 h-4" />
+
+              {sharing
+                ? 'Preparing...'
+                : 'Share as Image'}
+            </button>
+
+            {/* Print */}
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="bg-black hover:bg-gray-800 text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer"
+            >
+              <Printer className="w-4 h-4" />
+              Print
+            </button>
+          </div>
+
+          {/* Mobile: Settings + Help */}
+          <div className="flex md:hidden items-center gap-1">
+            {receipt && (
+              <button
+                type="button"
+                onClick={() =>
+                  setShowSettings(!showSettings)
+                }
+                className="text-gray-600 hover:text-black p-2 rounded-lg hover:bg-gray-200"
+                title="Printer settings"
+                aria-label="Printer settings"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() =>
+                setShowHelp(!showHelp)
+              }
+              className="text-gray-600 hover:text-black p-2 rounded-lg hover:bg-gray-200"
+              title="Printer help"
+              aria-label="Printer help"
+            >
+              <Info className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* ---------------------------------------------------------------- */}
+        {/* MOBILE ACTION BUTTONS                                           */}
+        {/* ---------------------------------------------------------------- */}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3 md:hidden">
+          {receipt && (
+            <button
+              type="button"
+              onClick={handleBluetoothPrint}
+              disabled={btBusy}
+              className="min-h-[46px] bg-sky-700 hover:bg-sky-600 active:bg-sky-800 text-white text-sm font-medium px-3 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Bluetooth className="w-5 h-5 shrink-0" />
+
+              <span>
+                {btBusy
+                  ? 'Connecting...'
+                  : 'Bluetooth Printer'}
+              </span>
+            </button>
           )}
+
           <button
-            onClick={() => setShowHelp(!showHelp)}
-            className="text-gray-500 hover:text-black cursor-pointer p-1.5"
-            title="Printer not working?"
-          >
-            <Info className="w-4 h-4" />
-          </button>
-          <button
+            type="button"
             onClick={handleShareAsImage}
             disabled={sharing}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            className="min-h-[46px] bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-sm font-medium px-3 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Share2 className="w-4 h-4" /> {sharing ? 'Preparing...' : 'Share as Image'}
+            <Share2 className="w-5 h-5 shrink-0" />
+
+            <span>
+              {sharing
+                ? 'Preparing...'
+                : 'Share as Image'}
+            </span>
           </button>
+
           <button
-            onClick={() => window.print()}
-            className="bg-black text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer"
+            type="button"
+            onClick={handlePrint}
+            className="min-h-[46px] bg-black hover:bg-gray-800 active:bg-gray-900 text-white text-sm font-medium px-3 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer"
           >
-            <Printer className="w-4 h-4" /> Print
+            <Printer className="w-5 h-5 shrink-0" />
+
+            <span>Print</span>
           </button>
         </div>
       </div>
 
+      {/* ------------------------------------------------------------------ */}
+      {/* SETTINGS                                                          */}
+      {/* ------------------------------------------------------------------ */}
+
       {showSettings && receipt && (
-        <div className="px-3 pb-3 flex flex-wrap items-end gap-3 text-xs text-gray-700">
-          <label className="flex flex-col gap-1">
-            Paper width
-            <select
-              value={settings.charsPerLine}
-              onChange={(e) => saveSettings({ ...settings, charsPerLine: Number(e.target.value) as 32 | 48 })}
-              className="border border-gray-300 rounded px-2 py-1"
-            >
-              <option value={32}>58mm (32 chars)</option>
-              <option value={48}>80mm (48 chars)</option>
-            </select>
-          </label>
-          <span className="text-gray-500 pb-1">Saved on this device only.</span>
+        <div className="px-3 pb-3">
+          <div className="bg-white border border-gray-200 rounded-xl p-3 flex flex-col sm:flex-row sm:items-end gap-3 text-sm text-gray-700">
+            <label className="flex flex-col gap-1">
+              <span className="font-medium">
+                Paper width
+              </span>
+
+              <select
+                value={settings.charsPerLine}
+                onChange={(e) =>
+                  saveSettings({
+                    ...settings,
+                    charsPerLine:
+                      Number(e.target.value) as
+                        | 32
+                        | 48,
+                  })
+                }
+                className="border border-gray-300 rounded-lg px-3 py-2 bg-white min-h-[42px]"
+              >
+                <option value={32}>
+                  58mm (32 chars)
+                </option>
+
+                <option value={48}>
+                  80mm (48 chars)
+                </option>
+              </select>
+            </label>
+
+            <span className="text-gray-500 text-xs">
+              Saved on this device only.
+            </span>
+          </div>
         </div>
       )}
 
+      {/* ------------------------------------------------------------------ */}
+      {/* BLUETOOTH STATUS                                                   */}
+      {/* ------------------------------------------------------------------ */}
+
       {btStatus && (
-        <div className={`px-3 pb-2 text-xs ${btStatus.ok ? 'text-emerald-700' : 'text-red-600'}`}>{btStatus.message}</div>
+        <div className="px-3 pb-3">
+          <div
+            className={`rounded-lg px-3 py-2 text-xs ${
+              btStatus.ok
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-red-50 text-red-700 border border-red-200'
+            }`}
+          >
+            {btStatus.message}
+          </div>
+        </div>
       )}
-      {shareError && <div className="px-3 pb-3 text-xs text-red-600">{shareError}</div>}
+
+      {/* ------------------------------------------------------------------ */}
+      {/* SHARE ERROR                                                        */}
+      {/* ------------------------------------------------------------------ */}
+
+      {shareError && (
+        <div className="px-3 pb-3">
+          <div className="rounded-lg px-3 py-2 text-xs bg-red-50 text-red-600 border border-red-200">
+            {shareError}
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------ */}
+      {/* HELP                                                               */}
+      {/* ------------------------------------------------------------------ */}
 
       {showHelp && (
-        <div className="px-3 pb-3 text-xs text-gray-600 max-w-lg space-y-1">
-          <div>
-            <strong>Bluetooth Printer</strong> connects straight from the browser to the printer. Android + Chrome
-            only; not available on iPhone (Apple restriction). Some printer models use a Bluetooth profile this
-            can&apos;t detect.
-          </div>
-          <div>
-            If either fails, <strong>&quot;Share as Image&quot;</strong> is the most reliable fallback: it opens your
-            phone&apos;s Share menu so you can pick your printer&apos;s app (e.g. <strong>RawBT</strong>) or any other
-            app that talks to your specific printer.
+        <div className="px-3 pb-3">
+          <div className="bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-600 space-y-2">
+            <div>
+              <strong className="text-gray-800">
+                Bluetooth Printer
+              </strong>
+
+              <p className="mt-1">
+                Direct Bluetooth printing works only
+                when the browser supports Web Bluetooth.
+                Android Chrome/Edge is the main supported
+                environment.
+              </p>
+            </div>
+
+            {!btSupported && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-2">
+                <strong>
+                  Bluetooth is not available in this
+                  browser.
+                </strong>
+
+                <p className="mt-1">
+                  On Android, open the website directly
+                  in Chrome and try again.
+                </p>
+
+                <p className="mt-1">
+                  On iPhone/iPad, use
+                  <strong> Share as Image </strong>
+                  and select your printer app.
+                </p>
+              </div>
+            )}
+
+            <div>
+              <strong className="text-gray-800">
+                Share as Image
+              </strong>
+
+              <p className="mt-1">
+                This is the safest mobile fallback.
+                It creates a PNG of the receipt and opens
+                the phone's share menu when supported.
+              </p>
+            </div>
+
+            <div>
+              <strong className="text-gray-800">
+                Print
+              </strong>
+
+              <p className="mt-1">
+                Uses the device/browser's normal print
+                dialog. This is useful for printers
+                installed through the operating system.
+              </p>
+            </div>
+
+            {isMobile && (
+              <div className="text-gray-500 pt-1">
+                You are using a mobile device. For cheap
+                Bluetooth thermal printers, try
+                <strong> Bluetooth Printer </strong>
+                first on Android Chrome. If that does not
+                work, use
+                <strong> Share as Image </strong>.
+              </div>
+            )}
           </div>
         </div>
       )}
