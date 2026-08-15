@@ -2,6 +2,7 @@ import { redirect, notFound } from 'next/navigation';
 import { getSessionContext } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
 import PrintActions from './PrintActions';
+import type { ReceiptData } from '../../../../lib/print/escpos';
 
 // Printable invoice view — /invoices/[id]/print?format=a4 (default) or
 // ?format=thermal (58/80mm receipt printers). Renders a clean, white,
@@ -100,10 +101,42 @@ export default async function InvoicePrintPage({
   const invoiceDate = new Date(invoice.created_at).toLocaleDateString('en-IN');
 
   if (isThermal) {
+    // Same data already computed above for the HTML render, reshaped
+    // for the ESC/POS builder — kept in sync with the visible layout
+    // below by construction (both read from the same source values).
+    const receiptData: ReceiptData = {
+      org: {
+        name: org.name,
+        address: org.address,
+        contact_phone: org.contact_phone,
+        gst_number: org.settings.gst_number,
+        footer_text: org.settings.invoice_footer_text
+      },
+      invoice: {
+        invoice_number: invoice.invoice_number,
+        date: invoiceDate,
+        subtotal: invoice.subtotal,
+        discount: invoice.discount,
+        tax: invoice.tax,
+        taxType: invoice.tax_type,
+        total: invoice.total,
+        amountPaid: invoice.amount_paid,
+        balanceDue: invoice.balance_due,
+        paymentModeSummary
+      },
+      job: job ? { job_number: job.job_number } : null,
+      customer: customer ? { first_name: customer.first_name, last_name: customer.last_name } : null,
+      vehicle: vehicle ? { make: vehicle.make, model: vehicle.model, plate_number: vehicle.plate_number } : null,
+      items: [
+        ...services.map((s) => ({ name: s.name.slice(0, 20), qty: s.qty, unitCost: s.unit_cost })),
+        ...parts.map((p) => ({ name: p.name.slice(0, 16), suffix: `x${p.qty}`, qty: p.qty, unitCost: p.unit_cost }))
+      ]
+    };
+
     // ---- THERMAL (58/80mm receipt) ----
     return (
       <div className="bg-white min-h-screen text-black">
-        <PrintActions backHref={`/invoices/${invoice.id}`} />
+        <PrintActions backHref={`/invoices/${invoice.id}`} receipt={receiptData} />
         <div id="print-content" className="mx-auto font-mono text-[11px] leading-tight p-2" style={{ width: '72mm' }}>
           <div className="text-center">
             {org.logo_url && (
