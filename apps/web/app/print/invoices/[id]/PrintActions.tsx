@@ -130,81 +130,90 @@ export default function PrintActions({ backHref, receiptData }: { backHref: stri
 
   return (
     <div className="print:hidden sticky top-0 bg-gray-100 border-b border-gray-300 z-10">
-      <div className="p-3 flex items-center justify-between flex-wrap gap-2">
+      <div className="px-3 pt-3 pb-2 flex items-center justify-between">
         <a href={backHref} className="flex items-center gap-2 text-sm text-gray-700 hover:text-black cursor-pointer">
           <ArrowLeft className="w-4 h-4" /> Back
         </a>
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => setShowHelp(!showHelp)}
-            className="text-gray-500 hover:text-black cursor-pointer p-1.5"
-            title="Printer not working?"
-          >
-            <Info className="w-4 h-4" />
-          </button>
-
-          {receiptData && btAvailable && (
-            <>
-              {btConnectionState === 'connected' ? (
-                <div className="flex items-center gap-1.5">
-                  <span className="hidden sm:flex items-center gap-1 text-xs text-emerald-700 bg-emerald-100 px-2 py-1 rounded-lg">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> {printerName}
-                  </span>
-                  <button
-                    onClick={handlePrintBill}
-                    disabled={btBusy}
-                    className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                  >
-                    <Bluetooth className="w-4 h-4" /> {btBusy ? 'Printing...' : 'Print Bill'}
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={handleConnectPrinter}
-                  disabled={btBusy}
-                  className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {btConnectionState === 'disconnected' && btError ? (
-                    <RefreshCw className="w-4 h-4" />
-                  ) : (
-                    <Bluetooth className="w-4 h-4" />
-                  )}
-                  {btBusy ? 'Connecting...' : btError ? 'Reconnect Printer' : 'Connect Printer'}
-                </button>
-              )}
-            </>
-          )}
-
-          {receiptData?.printerIp && (
-            <button
-              onClick={handleNetworkPrint}
-              disabled={netPrinting}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              <Wifi className="w-4 h-4" /> {netPrinting ? 'Sending...' : 'Network Print'}
-            </button>
-          )}
-
-          <button
-            onClick={handleShareAsImage}
-            disabled={sharing}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer disabled:opacity-50"
-          >
-            <Share2 className="w-4 h-4" /> {sharing ? 'Preparing...' : 'Share as Image'}
-          </button>
-          <button
-            onClick={() => window.print()}
-            className="bg-black text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer"
-          >
-            <Printer className="w-4 h-4" /> Print
-          </button>
-        </div>
+        <button
+          onClick={() => setShowHelp(!showHelp)}
+          className="text-gray-500 hover:text-black cursor-pointer p-1"
+          title="Printer not working?"
+        >
+          <Info className="w-4 h-4" />
+        </button>
       </div>
+
+      {receiptData && btAvailable && btConnectionState === 'connected' && (
+        <div className="px-3 pb-1">
+          <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-100 px-2 py-1 rounded-lg">
+            <CheckCircle2 className="w-3.5 h-3.5" /> Connected: {printerName}
+          </span>
+        </div>
+      )}
+
+      {/* A consistent 2-column grid on mobile (each button the same
+          size, evenly aligned) instead of a wrapping flex row — with
+          up to 4 buttons possible (Bluetooth/Network are conditional),
+          flex-wrap left buttons at inconsistent widths depending on
+          which combination was showing. */}
+      <div className="px-3 pb-3 grid grid-cols-2 gap-2">
+        {receiptData && btAvailable && (
+          <>
+            {btConnectionState === 'connected' ? (
+              <button
+                onClick={handlePrintBill}
+                disabled={btBusy}
+                className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <Bluetooth className="w-4 h-4" /> {btBusy ? 'Printing...' : 'Print Bill'}
+              </button>
+            ) : (
+              <button
+                onClick={handleConnectPrinter}
+                disabled={btBusy}
+                className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {btConnectionState === 'disconnected' && btError ? (
+                  <RefreshCw className="w-4 h-4" />
+                ) : (
+                  <Bluetooth className="w-4 h-4" />
+                )}
+                {btBusy ? 'Connecting...' : btError ? 'Reconnect Printer' : 'Connect Printer'}
+              </button>
+            )}
+          </>
+        )}
+
+        {receiptData?.printerIp && (
+          <button
+            onClick={handleNetworkPrint}
+            disabled={netPrinting}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+          >
+            <Wifi className="w-4 h-4" /> {netPrinting ? 'Sending...' : 'Network Print'}
+          </button>
+        )}
+
+        <button
+          onClick={handleShareAsImage}
+          disabled={sharing}
+          className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+        >
+          <Share2 className="w-4 h-4" /> {sharing ? 'Preparing...' : 'Share as Image'}
+        </button>
+        <button
+          onClick={() => window.print()}
+          className="bg-black hover:bg-gray-800 text-white text-sm font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <Printer className="w-4 h-4" /> Print
+        </button>
+      </div>
+
       {btError && <div className="px-3 pb-3 text-xs text-red-600">Bluetooth: {btError}</div>}
       {netError && <div className="px-3 pb-3 text-xs text-red-600">Network printer: {netError}</div>}
       {shareError && <div className="px-3 pb-3 text-xs text-red-600">{shareError}</div>}
       {showHelp && (
-        <div className="px-3 pb-3 text-xs text-gray-600 max-w-lg space-y-1">
+        <div className="px-3 pb-3 text-xs text-gray-600 space-y-1">
           <div>
             <strong>Connect Printer</strong> pairs once — after that, every "Print Bill" reuses the same connection, no
             re-pairing each time. Works on Chrome for Android with a BLE thermal printer, over HTTPS. Not available on
