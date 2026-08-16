@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Printer, ArrowLeft, Share2, Info, Bluetooth, Wifi } from 'lucide-react';
 import { buildReceiptEscPos, type ReceiptData } from '@/lib/escpos';
 import { printViaBluetooth, isBluetoothPrintSupported } from '@/lib/bluetoothPrint';
@@ -31,6 +31,17 @@ export default function PrintActions({ backHref, receiptData }: { backHref: stri
   const [netPrinting, setNetPrinting] = useState(false);
   const [netError, setNetError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  // Deliberately starts false and is only set after mount — checking
+  // navigator.bluetooth directly during render would evaluate `false`
+  // on the server (no `navigator` in SSR) and then again on the very
+  // first client render (to match server output for hydration),
+  // meaning the button could stay hidden or flicker unreliably instead
+  // of showing correctly on browsers that do support it.
+  const [bluetoothSupported, setBluetoothSupported] = useState(false);
+
+  useEffect(() => {
+    setBluetoothSupported(isBluetoothPrintSupported());
+  }, []);
 
   async function handleBluetoothPrint() {
     if (!receiptData) return;
@@ -113,7 +124,7 @@ export default function PrintActions({ backHref, receiptData }: { backHref: stri
             <Info className="w-4 h-4" />
           </button>
 
-          {receiptData && isBluetoothPrintSupported() && (
+          {receiptData && bluetoothSupported && (
             <button
               onClick={handleBluetoothPrint}
               disabled={btPrinting}
