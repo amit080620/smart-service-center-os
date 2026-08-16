@@ -2,7 +2,6 @@ import { redirect, notFound } from 'next/navigation';
 import { getSessionContext } from '@smartbizos/auth';
 import { createSupabaseAdminClient } from '@smartbizos/database/admin';
 import PrintActions from './PrintActions';
-import type { ReceiptData } from '../../../../lib/print/escpos';
 
 // Printable invoice view — /invoices/[id]/print?format=a4 (default) or
 // ?format=thermal (58/80mm receipt printers). Renders a clean, white,
@@ -100,43 +99,39 @@ export default async function InvoicePrintPage({
   const org = session.org;
   const invoiceDate = new Date(invoice.created_at).toLocaleDateString('en-IN');
 
-  if (isThermal) {
-    // Same data already computed above for the HTML render, reshaped
-    // for the ESC/POS builder — kept in sync with the visible layout
-    // below by construction (both read from the same source values).
-    const receiptData: ReceiptData = {
-      org: {
-        name: org.name,
-        address: org.address,
-        contact_phone: org.contact_phone,
-        gst_number: org.settings.gst_number,
-        footer_text: org.settings.invoice_footer_text
-      },
-      invoice: {
-        invoice_number: invoice.invoice_number,
-        date: invoiceDate,
-        subtotal: invoice.subtotal,
-        discount: invoice.discount,
-        tax: invoice.tax,
-        taxType: invoice.tax_type,
-        total: invoice.total,
-        amountPaid: invoice.amount_paid,
-        balanceDue: invoice.balance_due,
-        paymentModeSummary
-      },
-      job: job ? { job_number: job.job_number } : null,
-      customer: customer ? { first_name: customer.first_name, last_name: customer.last_name } : null,
-      vehicle: vehicle ? { make: vehicle.make, model: vehicle.model, plate_number: vehicle.plate_number } : null,
-      items: [
-        ...services.map((s) => ({ name: s.name.slice(0, 20), qty: s.qty, unitCost: s.unit_cost })),
-        ...parts.map((p) => ({ name: p.name.slice(0, 16), suffix: `x${p.qty}`, qty: p.qty, unitCost: p.unit_cost }))
-      ]
-    };
+  // Built once, used by whichever direct-print method (Bluetooth or
+  // network) the person picks in PrintActions — same underlying data
+  // that's rendered on screen, just converted to raw ESC/POS bytes
+  // instead of HTML.
+  const receiptData = {
+    shopName: org.name,
+    address: org.address,
+    phone: org.contact_phone,
+    gstNumber: (org.settings.gst_number as string) || undefined,
+    docType: 'INVOICE',
+    docNumber: invoice.invoice_number,
+    date: invoiceDate,
+    customerName: customer ? `${customer.first_name} ${customer.last_name}`.trim() : 'Walk-in Customer',
+    vehicleLabel: vehicle ? `${vehicle.make} ${vehicle.model}` : undefined,
+    plateNumber: vehicle?.plate_number,
+    items: [...services, ...parts].map((i) => ({ name: i.name, qty: i.qty, unitCost: i.unit_cost })),
+    subtotal: invoice.subtotal,
+    discount: invoice.discount || undefined,
+    tax: invoice.tax || undefined,
+    total: invoice.total,
+    amountPaid: invoice.amount_paid,
+    balanceDue: invoice.balance_due || undefined,
+    paymentModeSummary: paymentModeSummary || undefined,
+    footerText: (org.settings.invoice_footer_text as string) || undefined,
+    paperWidth: ((org.settings.thermal_paper_width as 58 | 80) || 58) as 58 | 80,
+    printerIp: (org.settings.thermal_printer_ip as string) || undefined
+  };
 
+  if (isThermal) {
     // ---- THERMAL (58/80mm receipt) ----
     return (
       <div className="bg-white min-h-screen text-black">
-        <PrintActions backHref={`/invoices/${invoice.id}`} receipt={receiptData} />
+        <PrintActions backHref={`/invoices/${invoice.id}`} receiptData={receiptData} />
         <div id="print-content" className="mx-auto font-mono text-[11px] leading-tight p-2" style={{ width: '72mm' }}>
           <div className="text-center">
             {org.logo_url && (

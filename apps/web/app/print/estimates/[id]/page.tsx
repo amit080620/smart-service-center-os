@@ -59,10 +59,30 @@ export default async function EstimatePrintPage({ params }: { params: Promise<{ 
 
   const org = session.org;
   const estimateDate = new Date().toLocaleDateString('en-IN');
+  const estimateSubtotal = [...services, ...parts].reduce((sum, i) => sum + i.qty * i.unit_cost, 0);
+
+  const receiptData = {
+    shopName: org.name,
+    address: org.address,
+    phone: org.contact_phone,
+    gstNumber: (org.settings.gst_number as string) || undefined,
+    docType: 'ESTIMATE',
+    docNumber: job.job_number,
+    date: estimateDate,
+    customerName: customer ? `${customer.first_name} ${customer.last_name}`.trim() : 'Walk-in Customer',
+    vehicleLabel: vehicle ? `${vehicle.make} ${vehicle.model}` : undefined,
+    plateNumber: vehicle?.plate_number,
+    items: [...services, ...parts].map((i) => ({ name: i.name, qty: i.qty, unitCost: i.unit_cost })),
+    subtotal: estimateSubtotal,
+    total: estimateSubtotal,
+    footerText: 'Estimate only, not a final invoice.',
+    paperWidth: ((org.settings.thermal_paper_width as 58 | 80) || 58) as 58 | 80,
+    printerIp: (org.settings.thermal_printer_ip as string) || undefined
+  };
 
   return (
     <div className="bg-white min-h-screen text-black">
-      <PrintActions backHref={`/job-cards/${job.id}`} />
+      <PrintActions backHref={`/job-cards/${job.id}`} receiptData={receiptData} />
       <div id="print-content" className="mx-auto p-10 max-w-[210mm] text-sm">
         {org.settings.invoice_header_image_url ? (
           // eslint-disable-next-line @next/next/no-img-element

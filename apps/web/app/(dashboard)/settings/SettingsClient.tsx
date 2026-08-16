@@ -14,6 +14,8 @@ export default function SettingsClient({
   invoiceFooterText,
   currentHeaderImageUrl,
   currentFooterImageUrl,
+  thermalPrinterIp,
+  thermalPaperWidth,
   canManage
 }: {
   orgName: string;
@@ -25,6 +27,8 @@ export default function SettingsClient({
   invoiceFooterText: string;
   currentHeaderImageUrl: string | null;
   currentFooterImageUrl: string | null;
+  thermalPrinterIp: string;
+  thermalPaperWidth: 58 | 80;
   canManage: boolean;
 }) {
   const router = useRouter();
@@ -48,6 +52,8 @@ export default function SettingsClient({
   const [addr, setAddr] = useState(address);
   const [gst, setGst] = useState(gstNumber);
   const [footerText, setFooterText] = useState(invoiceFooterText);
+  const [printerIp, setPrinterIp] = useState(thermalPrinterIp);
+  const [paperWidth, setPaperWidth] = useState<58 | 80>(thermalPaperWidth);
   const [detailsSubmitting, setDetailsSubmitting] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
   const [detailsSuccess, setDetailsSuccess] = useState(false);
@@ -148,7 +154,9 @@ export default function SettingsClient({
         contactEmail: email,
         address: addr,
         gstNumber: gst,
-        invoiceFooterText: footerText
+        invoiceFooterText: footerText,
+        thermalPrinterIp: printerIp,
+        thermalPaperWidth: paperWidth
       })
     });
     const data = await res.json();
@@ -404,6 +412,29 @@ export default function SettingsClient({
                 placeholder="e.g. Thank you for choosing us! Terms: payment due within 7 days."
                 className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50 resize-none"
               />
+            </div>
+            <div>
+              <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Network Printer IP (optional)</label>
+              <input
+                value={printerIp}
+                onChange={(e) => setPrinterIp(e.target.value)}
+                disabled={detailsSubmitting}
+                placeholder="e.g. 192.168.1.50"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50 font-mono"
+              />
+              <p className="text-xs text-slate-500 mt-1">Only if your thermal printer connects via WiFi/LAN, not Bluetooth.</p>
+            </div>
+            <div>
+              <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">Thermal Paper Width</label>
+              <select
+                value={paperWidth}
+                onChange={(e) => setPaperWidth(Number(e.target.value) as 58 | 80)}
+                disabled={detailsSubmitting}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-2.5 px-3 text-sm outline-none disabled:opacity-50"
+              >
+                <option value={58}>58mm (most common)</option>
+                <option value={80}>80mm</option>
+              </select>
             </div>
           </div>
 

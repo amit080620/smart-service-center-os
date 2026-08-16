@@ -20,6 +20,8 @@ export default async function SettingsPage() {
       invoiceFooterText={session.org.settings.invoice_footer_text ?? ''}
       currentHeaderImageUrl={(session.org.settings.invoice_header_image_url as string) ?? null}
       currentFooterImageUrl={(session.org.settings.invoice_footer_image_url as string) ?? null}
+      thermalPrinterIp={(session.org.settings.thermal_printer_ip as string) ?? ''}
+      thermalPaperWidth={(session.org.settings.thermal_paper_width as 58 | 80) ?? 58}
       canManage={canManageOrgSettings(session.employee.role)}
     />
   );

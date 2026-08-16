@@ -9,7 +9,9 @@ const updateOrgSettingsSchema = z.object({
   contactEmail: z.string().trim().email().optional().or(z.literal('')),
   address: z.string().trim().optional(),
   gstNumber: z.string().trim().optional(),
-  invoiceFooterText: z.string().trim().optional()
+  invoiceFooterText: z.string().trim().optional(),
+  thermalPrinterIp: z.string().trim().optional(),
+  thermalPaperWidth: z.union([z.literal(58), z.literal(80)]).optional()
 });
 
 export async function POST(req: NextRequest) {
@@ -44,7 +46,9 @@ export async function POST(req: NextRequest) {
   const newSettings = {
     ...currentSettings,
     ...(parsed.data.gstNumber !== undefined && { gst_number: parsed.data.gstNumber }),
-    ...(parsed.data.invoiceFooterText !== undefined && { invoice_footer_text: parsed.data.invoiceFooterText })
+    ...(parsed.data.invoiceFooterText !== undefined && { invoice_footer_text: parsed.data.invoiceFooterText }),
+    ...(parsed.data.thermalPrinterIp !== undefined && { thermal_printer_ip: parsed.data.thermalPrinterIp }),
+    ...(parsed.data.thermalPaperWidth !== undefined && { thermal_paper_width: parsed.data.thermalPaperWidth })
   };
 
   const { data: updated, error } = await admin
