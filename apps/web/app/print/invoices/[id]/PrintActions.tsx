@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Printer, ArrowLeft, Share2, Info, Bluetooth, Wifi } from 'lucide-react';
+import { Printer, ArrowLeft, Share2, Info, Bluetooth, Wifi, CheckCircle2, RefreshCw } from 'lucide-react';
 import { buildReceiptEscPos, type ReceiptData } from '@/lib/escpos';
-import { printViaBluetooth, isBluetoothPrintSupported } from '@/lib/bluetoothPrint';
+import { printerManager, isBluetoothPrintSupported, isSecureContext, type PrinterConnectionState } from '@/lib/bluetoothPrint';
 
 // Small toolbar shown at the top of the print view.
 //
@@ -12,10 +12,11 @@ import { printViaBluetooth, isBluetoothPrintSupported } from '@/lib/bluetoothPri
 // NEW TAB (target="_blank" from the job card / invoice page), so a
 // fresh tab has no history to go back to at all.
 //
-// Four ways to actually get the receipt onto paper, in the order most
-// people will want them:
-//  - Bluetooth: direct browser-to-printer via Web Bluetooth (Chrome/
-//    Android only — Apple blocks this in Safari/iOS entirely).
+// Four ways to actually get the receipt onto paper:
+//  - Bluetooth: a persistent connection via printerManager (see
+//    lib/bluetoothPrint.ts) — connect once, then every "Print Bill"
+//    press reuses that same connection instead of re-pairing each
+//    time. Chrome/Android only; Apple blocks Web Bluetooth in Safari.
 //  - Network: sends raw ESC/POS to a WiFi/LAN printer's IP (configured
 //    once in Settings) via a server-side TCP connection.
 //  - Print: the OS's normal print dialog — works for USB/properly-
@@ -26,36 +27,54 @@ import { printViaBluetooth, isBluetoothPrintSupported } from '@/lib/bluetoothPri
 export default function PrintActions({ backHref, receiptData }: { backHref: string; receiptData?: ReceiptData }) {
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
-  const [btPrinting, setBtPrinting] = useState(false);
-  const [btError, setBtError] = useState<string | null>(null);
   const [netPrinting, setNetPrinting] = useState(false);
   const [netError, setNetError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
-  // Deliberately starts false and is only set after mount — checking
-  // navigator.bluetooth directly during render would evaluate `false`
-  // on the server (no `navigator` in SSR) and then again on the very
-  // first client render (to match server output for hydration),
-  // meaning the button could stay hidden or flicker unreliably instead
-  // of showing correctly on browsers that do support it.
-  const [bluetoothSupported, setBluetoothSupported] = useState(false);
+
+  // Bluetooth support/HTTPS are only known once mounted in the browser
+  // — checking them during render would read `false` during Next.js's
+  // server-side render pass (no `navigator`/`window` in Node), which
+  // can make the button flicker or stay hidden after hydration instead
+  // of reliably reflecting what the browser actually supports.
+  const [btAvailable, setBtAvailable] = useState(false);
+  const [btConnectionState, setBtConnectionState] = useState<PrinterConnectionState>('disconnected');
+  const [btBusy, setBtBusy] = useState(false);
+  const [btError, setBtError] = useState<string | null>(null);
+  const [printerName, setPrinterName] = useState<string | null>(null);
 
   useEffect(() => {
-    setBluetoothSupported(isBluetoothPrintSupported());
+    setBtAvailable(isBluetoothPrintSupported() && isSecureContext());
+    setBtConnectionState(printerManager.isConnected() ? 'connected' : 'disconnected');
+    printerManager.subscribe((state) => {
+      setBtConnectionState(state);
+      setPrinterName(printerManager.getPrinterName());
+    });
+    return () => printerManager.unsubscribe();
   }, []);
 
-  async function handleBluetoothPrint() {
+  async function handleConnectPrinter() {
+    setBtBusy(true);
+    setBtError(null);
+    try {
+      await printerManager.connect();
+      setPrinterName(printerManager.getPrinterName());
+    } catch (err) {
+      setBtError(err instanceof Error ? err.message : 'Printer connection failed.');
+    }
+    setBtBusy(false);
+  }
+
+  async function handlePrintBill() {
     if (!receiptData) return;
-    setBtPrinting(true);
+    setBtBusy(true);
     setBtError(null);
     try {
       const bytes = buildReceiptEscPos(receiptData);
-      await printViaBluetooth(bytes);
+      await printerManager.print(bytes);
     } catch (err) {
-      if (err instanceof Error && err.name !== 'NotFoundError') {
-        setBtError(err.message);
-      }
+      setBtError(err instanceof Error ? err.message : 'Printing failed.');
     }
-    setBtPrinting(false);
+    setBtBusy(false);
   }
 
   async function handleNetworkPrint() {
@@ -124,14 +143,36 @@ export default function PrintActions({ backHref, receiptData }: { backHref: stri
             <Info className="w-4 h-4" />
           </button>
 
-          {receiptData && bluetoothSupported && (
-            <button
-              onClick={handleBluetoothPrint}
-              disabled={btPrinting}
-              className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              <Bluetooth className="w-4 h-4" /> {btPrinting ? 'Connecting...' : 'Bluetooth Print'}
-            </button>
+          {receiptData && btAvailable && (
+            <>
+              {btConnectionState === 'connected' ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="hidden sm:flex items-center gap-1 text-xs text-emerald-700 bg-emerald-100 px-2 py-1 rounded-lg">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> {printerName}
+                  </span>
+                  <button
+                    onClick={handlePrintBill}
+                    disabled={btBusy}
+                    className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <Bluetooth className="w-4 h-4" /> {btBusy ? 'Printing...' : 'Print Bill'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleConnectPrinter}
+                  disabled={btBusy}
+                  className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {btConnectionState === 'disconnected' && btError ? (
+                    <RefreshCw className="w-4 h-4" />
+                  ) : (
+                    <Bluetooth className="w-4 h-4" />
+                  )}
+                  {btBusy ? 'Connecting...' : btError ? 'Reconnect Printer' : 'Connect Printer'}
+                </button>
+              )}
+            </>
           )}
 
           {receiptData?.printerIp && (
@@ -165,8 +206,10 @@ export default function PrintActions({ backHref, receiptData }: { backHref: stri
       {showHelp && (
         <div className="px-3 pb-3 text-xs text-gray-600 max-w-lg space-y-1">
           <div>
-            <strong>Bluetooth Print</strong> connects straight to your paired thermal printer — works on Chrome for
-            Android, not on iPhone (Apple doesn't allow this in Safari).
+            <strong>Connect Printer</strong> pairs once — after that, every "Print Bill" reuses the same connection, no
+            re-pairing each time. Works on Chrome for Android with a BLE thermal printer, over HTTPS. Not available on
+            iPhone (Apple doesn't allow this in Safari) or for older "Bluetooth Classic/SPP" printers, which browsers
+            can't reach at all — use Share as Image with your printer's own app (e.g. RawBT) for those.
           </div>
           <div>
             <strong>Network Print</strong> sends to a WiFi/LAN printer directly — set its IP address once in Settings.

@@ -22,13 +22,15 @@ interface BluetoothRemoteGATTService {
 }
 
 interface BluetoothRemoteGATTServer {
+  readonly connected: boolean;
   connect(): Promise<BluetoothRemoteGATTServer>;
   disconnect(): void;
   getPrimaryService(service: string): Promise<BluetoothRemoteGATTService>;
 }
 
-interface BluetoothDevice {
+interface BluetoothDevice extends EventTarget {
   readonly gatt?: BluetoothRemoteGATTServer;
+  readonly name?: string;
 }
 
 interface RequestDeviceOptions {
