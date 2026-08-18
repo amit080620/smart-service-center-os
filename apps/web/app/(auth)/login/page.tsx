@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Key, Mail, ShieldAlert, Wrench, Users, Package, Receipt } from 'lucide-react';
+import { Key, Mail, ShieldAlert, Wrench, Users, Package, Receipt, Eye, EyeOff } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@smartbizos/database';
 import { loginSchema, signupSchema } from '@smartbizos/validation';
 
@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [ownerName, setOwnerName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
@@ -212,13 +214,21 @@ export default function LoginPage() {
                     <div className="relative">
                       <Key className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-500" />
                       <input
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         disabled={loading}
-                        className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-3 pl-10 pr-4 text-sm text-slate-100 outline-none transition-all placeholder:text-slate-600 disabled:opacity-50"
+                        className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-3 pl-10 pr-11 text-sm text-slate-100 outline-none transition-all placeholder:text-slate-600 disabled:opacity-50"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        tabIndex={-1}
+                        className="absolute right-3.5 top-3.5 text-slate-500 hover:text-slate-300 cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
                   <button
@@ -298,15 +308,23 @@ export default function LoginPage() {
                     <div className="relative">
                       <Key className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-500" />
                       <input
-                        type="password"
+                        type={showSignupPassword ? 'text' : 'password'}
                         value={signupPassword}
                         onChange={(e) => setSignupPassword(e.target.value)}
                         placeholder="At least 8 characters"
                         required
                         minLength={8}
                         disabled={loading}
-                        className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-3 pl-10 pr-4 text-sm text-slate-100 outline-none transition-all placeholder:text-slate-600 disabled:opacity-50"
+                        className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl py-3 pl-10 pr-11 text-sm text-slate-100 outline-none transition-all placeholder:text-slate-600 disabled:opacity-50"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowSignupPassword(!showSignupPassword)}
+                        tabIndex={-1}
+                        className="absolute right-3.5 top-3.5 text-slate-500 hover:text-slate-300 cursor-pointer"
+                      >
+                        {showSignupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
                   <button
